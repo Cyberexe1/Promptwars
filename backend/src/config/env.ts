@@ -1,6 +1,12 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+const EXAMPLE_JWT_SECRET = 'change-this-to-at-least-32-characters';
+const optionalUrlSchema = z.preprocess(
+  (value) => (value === '' ? undefined : value),
+  z.url().optional(),
+);
+
 const environmentSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
@@ -11,8 +17,9 @@ const environmentSchema = z.object({
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
   DDB_TABLE_NAME: z.string().min(1).default('eventplanner-dev'),
+  DDB_ENDPOINT: optionalUrlSchema,
   BEDROCK_MODEL_ID: z.string().optional(),
-  JWT_SECRET: z.string().optional(),
+  JWT_SECRET: z.string().min(32),
 });
 
 const parsedEnvironment = environmentSchema.safeParse(process.env);
@@ -22,6 +29,15 @@ if (!parsedEnvironment.success) {
     .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
     .join('; ');
   throw new Error(`Invalid environment configuration: ${details}`);
+}
+
+if (
+  parsedEnvironment.data.NODE_ENV === 'production' &&
+  parsedEnvironment.data.JWT_SECRET === EXAMPLE_JWT_SECRET
+) {
+  throw new Error(
+    'Invalid environment configuration: replace the example JWT_SECRET',
+  );
 }
 
 export const env = parsedEnvironment.data;

@@ -15,16 +15,26 @@
 
 ## 2. Data Model (DynamoDB single table)
 
-Table: `eventplanner-<env>`, PK/SK strings, one GSI.
+Table: `eventplanner-<env>` with string partition and sort keys. The implemented access patterns use the base table and require no GSI.
 
-| Entity      | PK                | SK                        | Notes                                                |
-| ----------- | ----------------- | ------------------------- | ---------------------------------------------------- |
-| User        | `USER#<userId>`   | `PROFILE`                 | email, passwordHash, createdAt                       |
-| User lookup | `EMAIL#<email>`   | `USER`                    | for login                                            |
-| Event       | `USER#<userId>`   | `EVENT#<eventId>`         | type, title, date, guests, budget, city, preferences |
-| Budget item | `EVENT#<eventId>` | `BUDGET#<category>`       | allocated, spent                                     |
-| Task        | `EVENT#<eventId>` | `TASK#<dueDate>#<taskId>` | title, status, category, dueDate                     |
-| Vendor      | `EVENT#<eventId>` | `VENDOR#<vendorId>`       | category, name, status, quote                        |
+| Entity      | PK                | SK                  | Notes                                                |
+| ----------- | ----------------- | ------------------- | ---------------------------------------------------- |
+| User        | `USER#<userId>`   | `PROFILE`           | email, passwordHash, createdAt                       |
+| User lookup | `EMAIL#<email>`   | `USER`              | for login                                            |
+| Event       | `USER#<userId>`   | `EVENT#<eventId>`   | type, title, date, guests, budget, city, preferences |
+| Budget item | `EVENT#<eventId>` | `BUDGET#<category>` | allocated, spent                                     |
+| Task        | `EVENT#<eventId>` | `TASK#<taskId>`     | title, status, category, dueDate                     |
+| Vendor      | `EVENT#<eventId>` | `VENDOR#<vendorId>` | category, name, status, quote                        |
+
+Implementation decisions:
+
+- Due date is a task attribute rather than part of its key, enabling direct task updates and safe regeneration without a scan or secondary index.
+- Monetary values are accepted to two decimals and converted to integer cents during allocation so category totals exactly equal the event budget.
+- Context changes regenerate by default; callers can pass `regenerate: false`. Matching budget, task, and vendor IDs retain user progress.
+- Account and plan writes use DynamoDB transactions. The bounded generated plan remains below the 100-action limit.
+- Event versions are optimistic locks shared by regeneration, child mutations, and deletion; stale requests return `409` instead of losing progress.
+- Strongly consistent, paginated reads prevent stale authentication and truncated plan/list operations.
+- The default suite uses isolated repositories, while an opt-in DynamoDB Local suite validates real expressions and transaction behavior.
 
 Zod schemas live in `backend/src/schemas/` and are the single source of truth for request validation and TypeScript types.
 
@@ -121,11 +131,11 @@ All in `backend/src/services/planning/` as **pure functions** (input in, output 
 
 ## 7. Definition of Done
 
-- [ ] All endpoints above work against DynamoDB.
-- [ ] Creating an event returns a complete plan (budget, tasks, vendors) with no AI involved.
-- [ ] Engine functions have meaningful test coverage.
-- [ ] Ownership and validation tests pass.
-- [ ] Pushed to `main`.
+- [x] All endpoints above work against DynamoDB.
+- [x] Creating an event returns a complete plan (budget, tasks, vendors) with no AI involved.
+- [x] Engine functions have meaningful test coverage.
+- [x] Ownership and validation tests pass.
+- [x] Pushed to `main`.
 
 ## 8. Hand-off to Phase 3
 

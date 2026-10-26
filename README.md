@@ -6,42 +6,75 @@ A planning assistant for **weddings, birthdays, and community events**. It turns
 
 ## Project Status
 
-Phase 1 is implemented: the TypeScript monorepo, secured Express foundation, health endpoint, responsive React landing page, typed API client, environment validation, linting, formatting, tests, and production builds are ready.
+Phases 1 and 2 are implemented. The project now includes the TypeScript monorepo, secure account access, DynamoDB persistence, complete event APIs, and a deterministic planning engine. Bedrock personalization begins in Phase 3.
 
 | Phase                               | Status   | Document                                               |
 | ----------------------------------- | -------- | ------------------------------------------------------ |
 | 1. Foundation and project setup     | Complete | [Phase 1](phases/PHASE-1-FOUNDATION.md)                |
-| 2. Backend core and planning engine | Planned  | [Phase 2](phases/PHASE-2-BACKEND-CORE.md)              |
+| 2. Backend core and planning engine | Complete | [Phase 2](phases/PHASE-2-BACKEND-CORE.md)              |
 | 3. GenAI integration with Bedrock   | Planned  | [Phase 3](phases/PHASE-3-GENAI-INTEGRATION.md)         |
 | 4. Frontend and accessibility       | Planned  | [Phase 4](phases/PHASE-4-FRONTEND.md)                  |
 | 5. AWS deployment and submission    | Planned  | [Phase 5](phases/PHASE-5-DEPLOYMENT-AND-SUBMISSION.md) |
 
-## Approach
+## Chosen Vertical
 
-- **Deterministic engine first:** budget, timeline, and vendor checklist calculations will come from tested rules based on user context.
-- **AI as enhancement:** Bedrock will add personalized ideas, plan refinement, and chat. Model output will be schema-validated, and the core app will remain usable if AI is unavailable.
-- **Secure and accessible by design:** strict input validation, authentication, rate limits, least-privilege IAM, semantic HTML, keyboard support, and visible status messaging.
+**Event Planning Assistant** for weddings, birthdays, and community events. The assistant accounts for event type, date, location, guest count, total budget, indoor/outdoor setting, audience, and preferences such as vegetarian or eco-friendly planning.
 
-## Phase 1 Architecture
+## Approach and Logic
+
+- **Deterministic engine first:** tested rules produce the budget, timeline, warnings, and vendor checklist. Core planning remains reliable when GenAI is unavailable.
+- **Contextual decisions:** high guest counts shift money toward venue and food; outdoor events receive rentals and additional contingency; kids' events prioritize entertainment and omit bar service; short-notice events mark missed tasks urgent.
+- **Exact budget math:** allocations use integer cents internally, reserve 5–10% contingency, and always add back to the user's total.
+- **AI as enhancement:** Phase 3 will use Bedrock for personalized ideas, plan refinement, and chat while schema-validating model output.
+- **Secure and accessible by design:** strict validation, authentication, rate limits, least-privilege IAM, semantic HTML, keyboard support, and visible status messaging.
+
+## Architecture
 
 ```text
-React browser app (localhost:5173)
-             |
-             | GET /api/health
-             v
-Express API (localhost:8080)
+React browser app
+       |
+       | HTTPS / JSON API
+       v
+Express API on App Runner (planned Phase 5)
+       |-- Bcrypt password hashing + one-hour JWTs
+       |-- Deterministic planning engine
+       |-- DynamoDB repository interface
+       v
+Amazon DynamoDB single table
+
+Amazon Bedrock integration begins in Phase 3
 ```
 
-The backend applies Helmet security headers, origin-restricted CORS, a 100 KB JSON body limit, centralized error handling, and Zod-validated environment configuration. The frontend uses a typed API client and presents checking, connected, unavailable, and retry states.
+Repository interfaces keep AWS access out of route and planning code. API tests use in-memory implementations; production composition uses the AWS SDK default credential chain and DynamoDB.
+
+## Current Features
+
+- Account signup and login with normalized emails, bcrypt cost 12, and one-hour signed JWTs.
+- Event CRUD with ownership enforced for every event and nested resource operation.
+- Context-sensitive budget allocation with feasibility and overspending warnings.
+- Timeline generation with deterministic tasks, lead times, phases, urgency, and overdue status.
+- Vendor checklist with recommended lead time, questions, budget linkage, quote tracking, and status flow.
+- Regeneration after context changes while preserving spending, completed tasks, vendor status, and quotes where stable IDs still match.
+- DynamoDB single-table persistence with atomic account and plan writes.
 
 ## Repository Layout
 
 ```text
 .
-├── backend/        Express API, configuration, middleware, routes, tests
-├── frontend/       React application, API client, styles, component tests
-├── phases/         Five implementation guides
-├── package.json    npm workspaces and shared commands
+├── backend/
+│   ├── src/
+│   │   ├── config/          Environment, logging, DynamoDB client
+│   │   ├── domain/          Domain models
+│   │   ├── middleware/      Authentication, validation, errors
+│   │   ├── repositories/    DynamoDB contracts and implementations
+│   │   ├── routes/          Auth, events, health
+│   │   ├── schemas/         Strict Zod request schemas
+│   │   └── services/        Auth, event orchestration, planning engine
+│   └── tests/               API, health, and planning tests
+├── frontend/                React application and component tests
+├── infrastructure/          DynamoDB CloudFormation template
+├── phases/                  Five implementation guides
+├── package.json             npm workspaces and shared commands
 └── README.md
 ```
 
@@ -52,6 +85,7 @@ The backend applies Helmet security headers, origin-restricted CORS, a 100 KB JS
 - Node.js 20.19+ or 22.12+
 - npm 10+
 - Git
+- AWS CLI and credentials with DynamoDB access for persistent auth/event calls
 
 ### Install and configure
 
@@ -61,7 +95,20 @@ Copy-Item backend/.env.example backend/.env
 Copy-Item frontend/.env.example frontend/.env
 ```
 
-AWS values may remain empty during Phase 1. Real AWS keys must only go in `backend/.env`; that file is ignored by both Git and Docker. Never place secrets in the frontend or in variables prefixed with `VITE_`.
+Set a unique `JWT_SECRET` of at least 32 characters in `backend/.env`; production startup rejects the public example value. Real AWS keys may only go in that backend file for local development; it is ignored by Git and Docker. Never place secrets in the frontend or in `VITE_` variables. Production will use an App Runner IAM role and managed secret rather than access keys or checked-in values.
+
+### Create the DynamoDB table
+
+The table uses on-demand billing, encryption, point-in-time recovery, and `PK`/`SK` string keys. Its current access patterns need no secondary index.
+
+```powershell
+aws cloudformation deploy `
+  --template-file infrastructure/dynamodb-table.yml `
+  --stack-name promptwars-dev `
+  --parameter-overrides Environment=dev
+```
+
+Set `DDB_TABLE_NAME=eventplanner-dev`. For DynamoDB Local, set `DDB_ENDPOINT=http://localhost:8000` and use non-production placeholder AWS credentials.
 
 ### Run locally
 
@@ -69,7 +116,7 @@ AWS values may remain empty during Phase 1. Real AWS keys must only go in `backe
 npm run dev
 ```
 
-Open `http://localhost:5173`. The page reports **Backend connected** when the API at `http://localhost:8080/api/health` is available.
+Open `http://localhost:5173`. The API runs at `http://localhost:8080`.
 
 ### Quality commands
 
@@ -78,23 +125,88 @@ npm run lint
 npm run test
 npm run build
 npm run format:check
+npm audit --audit-level=high
 ```
 
-## Current API
+## API
 
-| Method | Path          | Response                                        |
-| ------ | ------------- | ----------------------------------------------- |
-| `GET`  | `/api/health` | `{ "status": "ok", "time": "<ISO timestamp>" }` |
+All `/api/events` endpoints require `Authorization: Bearer <token>`.
 
-## Security Notes
+| Method   | Path                                | Purpose                                  |
+| -------- | ----------------------------------- | ---------------------------------------- |
+| `GET`    | `/api/health`                       | Service health                           |
+| `POST`   | `/api/auth/signup`                  | Create an account and token              |
+| `POST`   | `/api/auth/login`                   | Authenticate and return a token          |
+| `GET`    | `/api/events`                       | List the authenticated user's events     |
+| `POST`   | `/api/events`                       | Create an event and deterministic plan   |
+| `GET`    | `/api/events/:id`                   | Get the complete plan                    |
+| `PATCH`  | `/api/events/:id`                   | Update context and optionally regenerate |
+| `DELETE` | `/api/events/:id`                   | Delete the event and plan                |
+| `PATCH`  | `/api/events/:id/tasks/:taskId`     | Change task completion status            |
+| `PATCH`  | `/api/events/:id/budget/:category`  | Record category spending                 |
+| `PATCH`  | `/api/events/:id/vendors/:vendorId` | Record vendor status and quote           |
 
+### Example event request
+
+```json
+{
+  "type": "wedding",
+  "title": "Alex and Sam",
+  "date": "2027-06-12",
+  "guestCount": 120,
+  "totalBudget": 25000,
+  "currency": "USD",
+  "city": "Portland",
+  "indoorOutdoor": "outdoor",
+  "preferences": ["vegetarian", "eco-friendly"],
+  "audience": "mixed"
+}
+```
+
+Unknown body/query keys, invalid IDs, past dates, more than 2,000 guests, and malformed money values are rejected with structured `400` responses.
+
+## DynamoDB Design
+
+| Entity              | PK                        | SK                  |
+| ------------------- | ------------------------- | ------------------- |
+| User                | `USER#<userId>`           | `PROFILE`           |
+| Email lookup        | `EMAIL#<normalizedEmail>` | `USER`              |
+| Event owner/summary | `USER#<userId>`           | `EVENT#<eventId>`   |
+| Budget item         | `EVENT#<eventId>`         | `BUDGET#<category>` |
+| Task                | `EVENT#<eventId>`         | `TASK#<taskId>`     |
+| Vendor              | `EVENT#<eventId>`         | `VENDOR#<vendorId>` |
+
+Task dates are attributes rather than part of the key so a task can be updated directly and regenerated without a scan. Generated plans remain below DynamoDB's 100-action transaction limit.
+
+## Security
+
+- Bcrypt password hashing with cost 12; password hashes never leave the service layer.
+- JWTs use HS256, contain only the user ID, and expire after one hour.
+- Auth routes are rate-limited; request bodies are capped at 100 KB.
+- Zod strictly validates bodies, path parameters, and query strings.
+- Resource ownership is checked before every event, task, budget, and vendor operation.
+- Helmet, exact-origin CORS, generic login failures, production-safe errors, and redacted structured logs are enabled.
 - `.env`, certificates, logs, dependencies, coverage, and build output are excluded from Git.
-- Dependencies and development tools are pinned exactly in `package-lock.json`.
-- Production errors do not expose internal messages or stack traces.
-- App Runner will use an IAM role rather than long-lived AWS access keys in Phase 5.
+- App Runner will receive least-privilege DynamoDB permissions through IAM in Phase 5.
 
-## Assumptions
+## Testing
 
-- Phase 1 intentionally contains no account, event, database, or GenAI behavior; these begin in Phases 2 and 3.
-- Local ports are `5173` for the frontend and `8080` for the API.
-- The final live demo URL and complete deployment instructions will be added in Phase 5.
+The default backend suite runs 19 tests covering budget totals and contextual adjustment, short-notice timelines, invalid dates, vendor selection, quote overspend, account access, strict validation, every event mutation, cross-user ownership denial, and DynamoDB command behavior.
+
+Two additional integration tests exercise the production repositories against DynamoDB Local: atomic account uniqueness, complete-plan reconstruction, child updates, stale-write conflicts, replacement cleanup, ownership, and versioned deletion. With DynamoDB Local running on port 8000, execute:
+
+```powershell
+$env:RUN_DYNAMODB_INTEGRATION = "true"
+$env:DDB_ENDPOINT = "http://localhost:8000"
+npm run test --workspace backend -- tests/integration/dynamodb-local.test.ts
+```
+
+## Assumptions and Current Limitations
+
+- Monetary input supports up to two decimal places; each event uses one currency from the supported two-decimal ISO 4217 set.
+- Vendor entries are planning categories, not a live vendor marketplace.
+- Regeneration preserves progress only where category/task/vendor stable IDs still match.
+- Production repository semantics are validated with DynamoDB Local; deployment to the AWS-hosted table occurs in Phase 5.
+- The frontend account and event workflow arrives in Phase 4; Phase 2 APIs can be exercised with an API client.
+- GenAI suggestions are not included until Phase 3.
+- The final live demo URL will be added in Phase 5.

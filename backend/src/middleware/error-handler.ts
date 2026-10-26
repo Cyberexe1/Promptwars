@@ -1,8 +1,11 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
-import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
+import { ApiError } from '../errors/api-error.js';
 
 export const notFoundHandler: RequestHandler = (_request, response) => {
-  response.status(404).json({ error: 'Route not found' });
+  response.status(404).json({
+    error: { code: 'NOT_FOUND', message: 'Route not found' },
+  });
 };
 
 export const errorHandler: ErrorRequestHandler = (
@@ -11,12 +14,22 @@ export const errorHandler: ErrorRequestHandler = (
   response,
   _next,
 ) => {
-  const message =
-    env.NODE_ENV === 'production'
-      ? 'An unexpected error occurred'
-      : error instanceof Error
-        ? error.message
-        : 'Unknown error';
+  if (error instanceof ApiError) {
+    response.status(error.status).json({
+      error: {
+        code: error.code,
+        message: error.message,
+        ...(error.details === undefined ? {} : { details: error.details }),
+      },
+    });
+    return;
+  }
 
-  response.status(500).json({ error: message });
+  logger.error({ err: error }, 'Unhandled request error');
+  response.status(500).json({
+    error: {
+      code: 'INTERNAL_ERROR',
+      message: 'An unexpected error occurred',
+    },
+  });
 };
