@@ -22,13 +22,16 @@
 4. **Least privilege.** Backend can only call the approved model ID.
 5. **Context injection.** Every prompt includes the event context (type, guests, budget, city, date, preferences) so output is personalized.
 
+**Implementation status:** Complete with mocked and API validation. A live smoke script is included, but it cannot run until `BEDROCK_MODEL_ID` is populated in `backend/.env`. Missing model configuration automatically uses deterministic fallbacks.
+
 ## 3. Setup
 
 1. In the AWS console, open **Bedrock → Model access** and request access to your chosen model in your region.
-2. Put the model ID in `backend/.env` as `BEDROCK_MODEL_ID`.
-3. Install `@aws-sdk/client-bedrock-runtime`.
-4. Use the **Converse API**, which gives a consistent request shape across models.
-5. IAM permissions needed (local user now, App Runner role later):
+2. Put the model or inference-profile ID in `backend/.env` as `BEDROCK_MODEL_ID`.
+3. Optionally set both `BEDROCK_GUARDRAIL_ID` and `BEDROCK_GUARDRAIL_VERSION`.
+4. Install `@aws-sdk/client-bedrock-runtime`.
+5. Use the **Converse API**, which gives a consistent request shape across models.
+6. IAM permissions needed (local user now, App Runner role later):
 
 ```json
 {
@@ -85,8 +88,9 @@ Prompt requirements:
 
 - User says: "Reduce catering cost by 10% and add a photo booth".
 - Model returns a **proposed change set** (for example `{ budgetShifts: [...], newTasks: [...] }`).
-- Backend validates: totals still equal the budget, categories exist, task dates valid.
-- The UI shows a diff; the user must **confirm** before anything is saved.
+- Backend validates: deltas balance exactly in cents, categories exist, allocations remain above spending, and task dates are valid.
+- Response includes `baseVersion` so a later confirmation can reject stale proposals.
+- The endpoint is preview-only and never persists changes. Phase 4 shows a diff and requires user confirmation.
 
 ### 5.3 Chat
 
@@ -103,9 +107,9 @@ Prompt requirements:
 - **No secrets in prompts.** Never include emails, password data, tokens, or AWS values.
 - **Rate limit** AI routes per user (they cost money): for example 20 requests per 15 minutes.
 - **Cost control:** Set `maxTokens`, low temperature for structured tasks (about 0.3), higher for ideas (about 0.7).
-- **Timeouts:** 20 to 30 seconds with `AbortController`.
-- **Optional:** Bedrock Guardrails for content filtering.
-- **Cache** idea results per event and category for a short TTL to save cost and latency.
+- **Timeouts:** One 25-second end-to-end deadline is shared by the initial call and optional repair.
+- **Guardrails:** Optional Bedrock Guardrail settings are passed to Converse. Intervention or filtered output triggers fallback.
+- **Cache:** Only successful ideas are cached for five minutes in a bounded 100-entry cache keyed by owner, event version, category, and hashed notes.
 
 ## 7. Example System Prompt (ideas)
 
@@ -129,16 +133,17 @@ Rules:
 - Test prompt builder includes context fields and delimiters.
 - Test sanitizer: long input truncated, control characters stripped.
 - Test refine validator rejects change sets that break budget totals.
-- Test rate limiter returns `429`.
-- Add a small manual test script (`npm run ai:smoke`) for a real call, kept out of CI.
+- Test rate limiter returns `429` on the 21st aggregate request while another user keeps an independent quota.
+- Test Converse command bounds, Guardrail config, abort behavior, unsafe stop reasons, non-text output, and log redaction.
+- A manual synthetic test is available as `npm run ai:smoke --workspace backend`; it stays out of CI and requires a configured model ID.
 
 ## 9. Definition of Done
 
-- [ ] Ideas, refine, and chat endpoints work with real Bedrock calls locally.
-- [ ] Bad or malicious input does not break the app or leak data.
-- [ ] If Bedrock is unreachable, the app still returns useful plan data.
-- [ ] AI responses are schema-validated and tested with mocks.
-- [ ] Pushed to `main`.
+- [ ] Live Bedrock smoke call — implementation is ready; blocked only by missing `BEDROCK_MODEL_ID` in the local environment.
+- [x] Bad or malicious input does not break the app or leak secrets.
+- [x] If Bedrock is unreachable, the app returns useful deterministic plan data.
+- [x] AI responses are schema- and semantics-validated with focused mock tests.
+- [x] Pushed to `main`.
 
 ## 10. Hand-off to Phase 4
 

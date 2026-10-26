@@ -19,6 +19,8 @@ const environmentSchema = z.object({
   DDB_TABLE_NAME: z.string().min(1).default('eventplanner-dev'),
   DDB_ENDPOINT: optionalUrlSchema,
   BEDROCK_MODEL_ID: z.string().optional(),
+  BEDROCK_GUARDRAIL_ID: z.string().optional(),
+  BEDROCK_GUARDRAIL_VERSION: z.string().optional(),
   JWT_SECRET: z.string().min(32),
 });
 

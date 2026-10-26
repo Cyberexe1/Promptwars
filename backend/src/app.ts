@@ -14,9 +14,13 @@ import type {
   EventRepository,
   UserRepository,
 } from './repositories/repository.js';
+import { createAiRouter } from './routes/ai.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createEventsRouter } from './routes/events.js';
 import { healthRouter } from './routes/health.js';
+import { EventAiService } from './services/ai/ai-service.js';
+import { BedrockAiModelClient } from './services/ai/bedrock-client.js';
+import type { AiModelClient } from './services/ai/model-client.js';
 import { AuthService } from './services/auth-service.js';
 import { EventService } from './services/event-service.js';
 import {
@@ -31,6 +35,8 @@ export interface AppDependencies {
   now?: () => Date;
   passwords?: PasswordHasher;
   tokens?: TokenService;
+  aiModel?: AiModelClient;
+  aiRequestLimit?: number;
 }
 
 export function createApp(dependencies: AppDependencies) {
@@ -38,8 +44,17 @@ export function createApp(dependencies: AppDependencies) {
   const now = dependencies.now ?? (() => new Date());
   const passwords = dependencies.passwords ?? new BcryptPasswordHasher();
   const tokens = dependencies.tokens ?? new TokenService(env.JWT_SECRET);
+  const aiModel =
+    dependencies.aiModel ??
+    new BedrockAiModelClient({
+      modelId: env.BEDROCK_MODEL_ID,
+      region: env.AWS_REGION,
+      guardrailId: env.BEDROCK_GUARDRAIL_ID,
+      guardrailVersion: env.BEDROCK_GUARDRAIL_VERSION,
+    });
   const auth = new AuthService(dependencies.users, passwords, tokens, now);
   const events = new EventService(dependencies.events, now);
+  const ai = new EventAiService(events, aiModel, now);
 
   app.disable('x-powered-by');
   if (env.NODE_ENV === 'production') app.set('trust proxy', 1);
@@ -63,6 +78,27 @@ export function createApp(dependencies: AppDependencies) {
       legacyHeaders: false,
     }),
     createAuthRouter(auth),
+  );
+  app.use(
+    '/api/events/:id/ai',
+    authenticate(tokens),
+    rateLimit({
+      windowMs: 15 * 60 * 1_000,
+      limit: dependencies.aiRequestLimit ?? 20,
+      keyGenerator: (_request, response) =>
+        String(response.locals.userId ?? 'unauthenticated'),
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      handler: (_request, response) => {
+        response.status(429).json({
+          error: {
+            code: 'RATE_LIMITED',
+            message: 'Too many AI requests; try again later',
+          },
+        });
+      },
+    }),
+    createAiRouter(ai),
   );
   app.use('/api/events', authenticate(tokens), createEventsRouter(events));
 
