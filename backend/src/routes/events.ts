@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { validate } from '../middleware/validate.js';
 import {
+  applyRefinementSchema,
+  type ApplyRefinementInput,
+} from '../schemas/ai.js';
+import {
   budgetParamsSchema,
   createEventSchema,
   eventIdParamsSchema,
@@ -50,6 +54,22 @@ export function createEventsRouter(events: EventService): Router {
     async (_request, response) => {
       const { id } = response.locals.params as EventParams;
       response.json(await events.get(userId(response.locals), id));
+    },
+  );
+
+  router.post(
+    '/:id/refinements/apply',
+    validate(eventIdParamsSchema, 'params'),
+    validate(applyRefinementSchema, 'body'),
+    async (_request, response) => {
+      const { id } = response.locals.params as EventParams;
+      response.json(
+        await events.applyRefinement(
+          userId(response.locals),
+          id,
+          response.locals.body as ApplyRefinementInput,
+        ),
+      );
     },
   );
 

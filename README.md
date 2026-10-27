@@ -6,14 +6,14 @@ A planning assistant for **weddings, birthdays, and community events**. It turns
 
 ## Project Status
 
-Phases 1–3 are implemented. The project includes a secure TypeScript API, deterministic planning engine, DynamoDB persistence, and Bedrock-powered ideas, refinement previews, and event-aware chat with schema-validated output and deterministic fallback behavior.
+Phases 1–4 are implemented. The project now includes a secure TypeScript API, deterministic planning engine, DynamoDB persistence, guarded Bedrock features, and a responsive, accessible React experience covering the complete planning workflow.
 
 | Phase                               | Status                                | Document                                               |
 | ----------------------------------- | ------------------------------------- | ------------------------------------------------------ |
 | 1. Foundation and project setup     | Complete                              | [Phase 1](phases/PHASE-1-FOUNDATION.md)                |
 | 2. Backend core and planning engine | Complete                              | [Phase 2](phases/PHASE-2-BACKEND-CORE.md)              |
 | 3. GenAI integration with Bedrock   | Complete; live smoke needs a model ID | [Phase 3](phases/PHASE-3-GENAI-INTEGRATION.md)         |
-| 4. Frontend and accessibility       | Planned                               | [Phase 4](phases/PHASE-4-FRONTEND.md)                  |
+| 4. Frontend and accessibility       | Complete                              | [Phase 4](phases/PHASE-4-FRONTEND.md)                  |
 | 5. AWS deployment and submission    | Planned                               | [Phase 5](phases/PHASE-5-DEPLOYMENT-AND-SUBMISSION.md) |
 
 ## Chosen Vertical
@@ -74,6 +74,16 @@ Repository and model-client interfaces isolate AWS from route and business logic
 - Aggregate 20-request/15-minute per-user AI quota.
 - Optional Bedrock Guardrail configuration and rejection of filtered/guardrail/tool/truncated responses.
 - Safe, useful fallback responses when Bedrock is unavailable.
+
+### React experience
+
+- Public landing, signup/login, protected routes, session restoration, and automatic `401` logout with return-path preservation.
+- Five-step event wizard with per-step validation, focus management, per-guest budget feedback, and review.
+- Event list with loading, empty, retry, deletion, and creation states.
+- URL-addressable, keyboard-operated dashboard tabs for overview, budget, timeline, vendors, ideas, and assistant.
+- Full-plan refresh after serialized mutations, with committed-write/refresh-failure distinction.
+- Accessible budget table, progress text, task controls, vendor forms, AI fallback banners, live chat announcements, and a focus-contained refinement dialog.
+- Route-level code splitting, responsive layouts down to 360px, reduced-motion support, 44px targets, and text equivalents for visual status.
 
 ## Repository Layout
 
@@ -190,6 +200,7 @@ All `/api/events` endpoints require `Authorization: Bearer <token>`.
 | `PATCH`  | `/api/events/:id/vendors/:vendorId` | Record vendor status and quote           |
 | `POST`   | `/api/events/:id/ai/ideas`          | Generate personalized ideas              |
 | `POST`   | `/api/events/:id/ai/refine`         | Preview validated plan changes           |
+| `POST`   | `/api/events/:id/refinements/apply` | Confirm and atomically apply a preview   |
 | `POST`   | `/api/events/:id/ai/chat`           | Ask an event-context question            |
 
 ### AI requests
@@ -213,7 +224,7 @@ Text fields are sanitized and capped at 500 Unicode characters. Chat history is 
 
 AI endpoint failures intentionally return HTTP `200` with the normal response shape and `aiAvailable: false`, allowing the UI to remain useful. Authentication, ownership, validation, and rate-limit failures still use `401`, `404`, `400`, and `429` respectively.
 
-Refinement is preview-only and never writes to DynamoDB. The response includes the event's `baseVersion`; Phase 4 must show the proposal and require explicit confirmation before applying a still-current preview.
+Refinement preview never writes to DynamoDB. The response includes the event's `baseVersion`; the React UI displays an accessible before/after confirmation dialog. Apply sends the unchanged proposal to `POST /api/events/:id/refinements/apply`, where the backend revalidates ownership, version, categories, dates, amounts, duplicates, and plan capacity before one atomic write. Cancel performs no write.
 
 ## DynamoDB Design
 
@@ -237,11 +248,12 @@ Refinement is preview-only and never writes to DynamoDB. The response includes t
 - Bedrock requests cap tokens/temperature, use SDK retries, and share a 25-second end-to-end deadline across the initial and repair calls.
 - Optional Bedrock Guardrails are supported; guardrail intervention, filtering, tool use, truncation, non-text, and empty output all fall back safely.
 - Helmet, exact-origin CORS, request-size limits, safe production errors, and redacted structured logs are enabled.
+- The frontend persists the one-hour bearer token in `localStorage` so sessions survive reloads. This MVP choice is vulnerable to token theft if an XSS flaw is introduced; model output is rendered only as React text, no HTML injection APIs are used, and a `401` clears the session. A production hardening option is a short-lived in-memory access token plus a rotating refresh token in a secure, SameSite, `httpOnly` cookie.
 - Production AWS access uses least-privilege IAM; no static credentials are committed.
 
 ## Testing
 
-The default backend suite covers planning decisions, auth, ownership, every mutation, concurrency, DynamoDB command behavior, AI sanitization, prompt allowlisting, JSON repair, semantic validation, caching, fallbacks, Bedrock command/timeout/stop handling, API contracts, and the per-user quota. DynamoDB Local tests separately execute real transaction and lifecycle behavior.
+The default suite runs 68 backend tests and 5 frontend workflow tests. Backend coverage includes planning decisions, auth, ownership, mutations, concurrency, refinement confirmation, DynamoDB commands, AI sanitization, prompt allowlisting, JSON repair, semantic validation, caching, fallbacks, Bedrock transport behavior, API contracts, and quotas. Frontend tests use mocked HTTP only and cover health, protected login, the five-step wizard, per-guest calculation, mutation/refetch behavior, keyboard tabs, budget/overspend text, AI fallback states, chat, refinement Cancel/Apply, and axe scans. DynamoDB Local tests separately execute real transaction and lifecycle behavior.
 
 ```powershell
 $env:RUN_DYNAMODB_INTEGRATION = "true"
@@ -258,5 +270,5 @@ npm run test --workspace backend -- tests/integration/dynamodb-local.test.ts
 - The five-minute cache and AI rate limiter are in-process MVP controls. Phase 5 must use a shared store or a single App Runner instance before horizontal scaling.
 - Bedrock output safety is strongest when the optional Guardrail is configured.
 - The live model smoke test requires the user-selected model ID and access; none was configured during this phase.
-- The frontend account, event, and AI workflows arrive in Phase 4.
+- The accessible React workflow is complete; deployment and a manual NVDA screen-reader walkthrough remain Phase 5 release checks.
 - The final live demo URL will be added in Phase 5.

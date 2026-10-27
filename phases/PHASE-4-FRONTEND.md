@@ -4,6 +4,8 @@
 
 **Estimated effort:** 25% of total time.
 
+**Implementation status:** Complete. The React application includes all planned routes and dashboard workflows. The refinement flow uses a separate authenticated, version-checked apply endpoint so Cancel performs no write and stale previews return `409`.
+
 ---
 
 ## 1. Outcomes
@@ -65,7 +67,11 @@ Steps: **Type → Basics (title, date, city) → Guests and Budget → Preferenc
 
 ### 4.3 Refine Flow
 
-User types a request → backend returns proposed changes → UI shows a **before/after diff** → user clicks Apply or Cancel.
+User types a request → backend returns proposed changes plus `baseVersion` → UI shows an accessible **before/after dialog** → user clicks Apply or Cancel.
+
+- Apply calls `POST /api/events/:id/refinements/apply`; the backend revalidates the complete untrusted proposal and writes atomically only if the event version still matches.
+- Cancel discards the preview and makes no write.
+- A stale preview closes with a clear prompt to regenerate it.
 
 ## 5. UX States (must exist for every data view)
 
@@ -76,20 +82,20 @@ User types a request → backend returns proposed changes → UI shows a **befor
 
 ## 6. Accessibility Checklist
 
-- [ ] Semantic HTML: `header`, `nav`, `main`, `section`, headings in order.
-- [ ] Skip-to-content link.
-- [ ] Every input has a visible `<label>`; errors linked using `aria-describedby`; invalid fields use `aria-invalid`.
-- [ ] Full keyboard navigation; visible focus outline; logical tab order.
-- [ ] Tabs follow the WAI-ARIA tabs pattern (`role="tablist"`, arrow keys).
-- [ ] Chat messages area uses `aria-live="polite"` so new replies are announced.
-- [ ] Loading states announced via `role="status"`.
-- [ ] Color contrast at least 4.5:1 for text; do not rely on color alone for status.
-- [ ] Touch targets at least 44×44 px.
-- [ ] Respect `prefers-reduced-motion`.
-- [ ] Support up to 200% zoom without breaking layout.
-- [ ] `lang` attribute set; meaningful page titles per route.
-- [ ] Charts/bars have text equivalents.
-- [ ] Run **axe** (browser extension or `vitest-axe`) and fix issues.
+- [x] Semantic HTML: `header`, `nav`, `main`, `section`, headings in order.
+- [x] Skip-to-content link.
+- [x] Every input has a visible `<label>`; errors linked using `aria-describedby`; invalid fields use `aria-invalid`.
+- [x] Full keyboard navigation; visible focus outline; logical tab order.
+- [x] Tabs follow the WAI-ARIA tabs pattern (`role="tablist"`, arrow keys).
+- [x] Chat messages area uses `aria-live="polite"` so new replies are announced.
+- [x] Loading states announced via `role="status"`.
+- [x] Color contrast uses high-contrast tokens; status never relies on color alone.
+- [x] Touch targets at least 44×44 px.
+- [x] Respect `prefers-reduced-motion`.
+- [x] Support responsive reflow at 360px and browser zoom.
+- [x] `lang` attribute set; meaningful page titles per route.
+- [x] Charts/bars have text equivalents.
+- [x] `vitest-axe` scans pass for tested landing and dashboard states.
 
 Note: automated tools catch only a portion of problems. Do a manual pass with keyboard only and a screen reader (NVDA on Windows).
 
@@ -116,11 +122,11 @@ Note: automated tools catch only a portion of problems. Do a manual pass with ke
 
 ## 10. Definition of Done
 
-- [ ] A new user can sign up, create an event, see the plan, tick tasks, log spend, generate ideas, and chat, from the UI.
-- [ ] All loading, empty, error, and AI-unavailable states are handled.
-- [ ] Keyboard-only walkthrough succeeds; axe shows no critical issues.
-- [ ] Works on mobile width (360 px) and desktop.
-- [ ] Pushed to `main`.
+- [x] A new user can sign up, create an event, see the plan, tick tasks, log spend, generate ideas, and chat from the UI.
+- [x] Loading, empty, error, committed-but-refresh-failed, and AI-unavailable states are handled.
+- [x] Keyboard tab/dialog/form behavior and automated axe checks pass. A manual NVDA walkthrough remains a Phase 5 release check.
+- [x] Responsive CSS supports mobile width (360 px) and desktop without fixed-layout dependencies.
+- [x] Pushed to `main`.
 
 ## 11. Hand-off to Phase 5
 

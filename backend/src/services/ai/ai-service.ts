@@ -71,7 +71,9 @@ export function isSemanticallyValidRefinement(
 
   for (const shift of proposal.budgetShifts) {
     const budget = budgets.get(shift.category);
-    if (!budget || shifted.has(shift.category)) return false;
+    if (!budget || shifted.has(shift.category) || cents(shift.delta) === 0) {
+      return false;
+    }
     shifted.add(shift.category);
     const resultingAllocation = cents(budget.allocated) + cents(shift.delta);
     if (resultingAllocation < 0 || resultingAllocation < cents(budget.spent)) {
@@ -81,12 +83,25 @@ export function isSemanticallyValidRefinement(
   }
   if (totalDelta !== 0) return false;
 
-  return proposal.newTasks.every(
-    (task) =>
-      budgets.has(task.category) &&
-      task.dueDate >= today &&
-      task.dueDate <= plan.event.date,
+  const taskKeys = new Set(
+    plan.tasks.map(
+      (task) =>
+        `${task.title.trim().toLowerCase()}|${task.category}|${task.dueDate}`,
+    ),
   );
+  return proposal.newTasks.every((task) => {
+    const key = `${task.title.trim().toLowerCase()}|${task.category}|${task.dueDate}`;
+    if (
+      taskKeys.has(key) ||
+      !budgets.has(task.category) ||
+      task.dueDate < today ||
+      task.dueDate > plan.event.date
+    ) {
+      return false;
+    }
+    taskKeys.add(key);
+    return true;
+  });
 }
 
 function totalRemaining(plan: EventPlan): number {

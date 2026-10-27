@@ -16,5 +16,13 @@ export default tseslint.config(
       ecmaVersion: 2022,
       globals: globals.browser,
     },
+    rules: {
+      // Data fetching and controlled-form synchronization are intentional effects.
+      'react-hooks/set-state-in-effect': 'off',
+      // Date-derived dashboard summaries are refreshed with the fetched plan.
+      'react-hooks/purity': 'off',
+      // This small app colocates each context provider and its consumer hook.
+      'react-refresh/only-export-components': 'off',
+    },
   },
 );

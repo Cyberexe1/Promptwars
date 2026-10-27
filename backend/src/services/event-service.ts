@@ -1,10 +1,17 @@
 import { randomUUID } from 'node:crypto';
-import type { EventPlan, EventRecord, VendorItem } from '../domain/models.js';
+import type {
+  EventPlan,
+  EventRecord,
+  PlanTask,
+  TaskPhase,
+  VendorItem,
+} from '../domain/models.js';
 import { ApiError } from '../errors/api-error.js';
 import {
   VersionConflictError,
   type EventRepository,
 } from '../repositories/repository.js';
+import type { ApplyRefinementInput } from '../schemas/ai.js';
 import type {
   CreateEventInput,
   UpdateBudgetInput,
@@ -12,8 +19,11 @@ import type {
   UpdateTaskInput,
   UpdateVendorInput,
 } from '../schemas/event.js';
+import { isSemanticallyValidRefinement } from './ai/ai-service.js';
 import { crossCheckVendorQuotes } from './planning/cross-checks.js';
 import { generatePlan } from './planning/generate-plan.js';
+
+const DAY_MS = 86_400_000;
 
 const contextKeys = [
   'type',
@@ -27,6 +37,48 @@ const contextKeys = [
   'preferences',
   'audience',
 ] as const;
+
+function dateOnlyMilliseconds(value: string): number {
+  return Date.parse(`${value}T00:00:00.000Z`);
+}
+
+function refinementTaskPhase(
+  dueDate: string,
+  eventDate: string,
+  today: string,
+): TaskPhase {
+  const dueTime = dateOnlyMilliseconds(dueDate);
+  const todayTime = dateOnlyMilliseconds(today);
+  const daysUntilDue = Math.floor((dueTime - todayTime) / DAY_MS);
+  const offsetDays = Math.floor(
+    (dateOnlyMilliseconds(eventDate) - dueTime) / DAY_MS,
+  );
+
+  if (daysUntilDue < 0) return 'Now';
+  if (offsetDays <= 7) return 'Event week';
+  if (offsetDays <= 21) return 'Final weeks';
+  if (daysUntilDue <= 30) return 'This month';
+  return 'Now';
+}
+
+function refinementTask(
+  task: ApplyRefinementInput['proposedChanges']['newTasks'][number],
+  eventDate: string,
+  today: string,
+): PlanTask {
+  const overdue = task.dueDate < today;
+  return {
+    id: `task-${randomUUID()}`,
+    title: task.title,
+    category: task.category,
+    dueDate: task.dueDate,
+    status: 'pending',
+    priority: 2,
+    phase: refinementTaskPhase(task.dueDate, eventDate, today),
+    urgent: overdue,
+    overdue,
+  };
+}
 
 function preserveProgress(previous: EventPlan, next: EventPlan): EventPlan {
   const budgets = new Map(previous.budget.map((item) => [item.category, item]));
@@ -132,6 +184,79 @@ export class EventService {
 
   async get(userId: string, eventId: string): Promise<EventPlan> {
     return this.refreshWarnings(await this.requirePlan(userId, eventId));
+  }
+
+  async applyRefinement(
+    userId: string,
+    eventId: string,
+    input: ApplyRefinementInput,
+  ): Promise<EventPlan> {
+    const previous = await this.requirePlan(userId, eventId);
+    if (previous.event.version !== input.baseVersion) {
+      throw ApiError.conflict(
+        'This event changed while the request was running. Refresh and try again.',
+      );
+    }
+
+    const { proposedChanges } = input;
+    if (
+      proposedChanges.budgetShifts.length === 0 &&
+      proposedChanges.newTasks.length === 0
+    ) {
+      throw ApiError.badRequest('The refinement proposal cannot be empty');
+    }
+
+    const now = this.now();
+    const today = now.toISOString().slice(0, 10);
+    if (!isSemanticallyValidRefinement(proposedChanges, previous, today)) {
+      throw ApiError.badRequest(
+        'The refinement proposal is not valid for the current event plan',
+      );
+    }
+    const projectedEntityCount =
+      1 +
+      previous.budget.length +
+      previous.tasks.length +
+      proposedChanges.newTasks.length +
+      previous.vendors.length;
+    if (projectedEntityCount > 100) {
+      throw ApiError.badRequest(
+        'The refinement would make this plan too large to apply safely',
+      );
+    }
+
+    const budgetDeltas = new Map(
+      proposedChanges.budgetShifts.map((shift) => [
+        shift.category,
+        Math.round(shift.delta * 100),
+      ]),
+    );
+    const plan = this.refreshWarnings({
+      ...previous,
+      event: {
+        ...previous.event,
+        version: previous.event.version + 1,
+        updatedAt: now.toISOString(),
+      },
+      budget: previous.budget.map((item) => ({
+        ...item,
+        allocated:
+          (Math.round(item.allocated * 100) +
+            (budgetDeltas.get(item.category) ?? 0)) /
+          100,
+      })),
+      tasks: [
+        ...previous.tasks,
+        ...proposedChanges.newTasks.map((task) =>
+          refinementTask(task, previous.event.date, today),
+        ),
+      ],
+    });
+
+    await this.withConflictHandling(() =>
+      this.events.savePlan(plan, input.baseVersion),
+    );
+    return plan;
   }
 
   async update(

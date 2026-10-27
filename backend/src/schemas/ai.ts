@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { refineModelSchema } from '../services/ai/outputSchemas.js';
 import { sanitizeText } from '../services/ai/sanitize.js';
 
 const sanitizedTextSchema = z
@@ -27,7 +28,13 @@ export const chatRequestSchema = z.strictObject({
   history: z.array(chatHistoryItemSchema).max(10).optional(),
 });
 
+export const applyRefinementSchema = z.strictObject({
+  baseVersion: z.number().int().positive(),
+  proposedChanges: refineModelSchema,
+});
+
 export type IdeasRequest = z.infer<typeof ideasRequestSchema>;
 export type RefineRequest = z.infer<typeof refineRequestSchema>;
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
 export type ChatHistoryItem = z.infer<typeof chatHistoryItemSchema>;
+export type ApplyRefinementInput = z.infer<typeof applyRefinementSchema>;
