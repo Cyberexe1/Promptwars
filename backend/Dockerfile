@@ -1,4 +1,4 @@
-FROM node:22.13.0-alpine3.21 AS build
+FROM node:22.23.4-alpine3.23 AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -9,7 +9,7 @@ RUN npm ci
 COPY backend ./backend
 RUN npm run build --workspace backend
 
-FROM node:22.13.0-alpine3.21 AS runtime
+FROM node:22.23.4-alpine3.23 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
