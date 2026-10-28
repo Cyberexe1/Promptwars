@@ -1,0 +1,12 @@
+.git
+.github
+.kiro
+.local
+node_modules
+**/node_modules
+**/dist
+**/coverage
+**/.env
+**/.env.*
+**/*.log
+semantic-review

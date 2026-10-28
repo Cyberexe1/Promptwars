@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Promptwars App Runner API service
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: promptwars
+    AllowedPattern: '^[a-z][a-z0-9-]{2,24}$'
+  ImageIdentifier:
+    Type: String
+    Description: Immutable ECR image identifier including the Git SHA tag
+  EcrAccessRoleArn:
+    Type: String
+  InstanceRoleArn:
+    Type: String
+  JwtSecretArn:
+    Type: String
+  TableName:
+    Type: String
+  FrontendOrigin:
+    Type: String
+    AllowedPattern: '^https://[^/]+$'
+  BedrockModelId:
+    Type: String
+  BedrockGuardrailId:
+    Type: String
+    Default: ''
+  BedrockGuardrailVersion:
+    Type: String
+    Default: ''
+
+Conditions:
+  HasGuardrail: !And
+    - !Not [!Equals [!Ref BedrockGuardrailId, '']]
+    - !Not [!Equals [!Ref BedrockGuardrailVersion, '']]
+
+Resources:
+  ApiAutoScaling:
+    Type: AWS::AppRunner::AutoScalingConfiguration
+    Properties:
+      MinSize: 1
+      MaxSize: 1
+      MaxConcurrency: 80
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+
+  ApiService:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: !Sub ${ProjectName}-api
+      AutoScalingConfigurationArn: !GetAtt ApiAutoScaling.AutoScalingConfigurationArn
+      InstanceConfiguration:
+        Cpu: 1 vCPU
+        Memory: 2 GB
+        InstanceRoleArn: !Ref InstanceRoleArn
+      HealthCheckConfiguration:
+        Protocol: HTTP
+        Path: /api/health
+        Interval: 10
+        Timeout: 5
+        HealthyThreshold: 1
+        UnhealthyThreshold: 5
+      SourceConfiguration:
+        AutoDeploymentsEnabled: false
+        AuthenticationConfiguration:
+          AccessRoleArn: !Ref EcrAccessRoleArn
+        ImageRepository:
+          ImageRepositoryType: ECR
+          ImageIdentifier: !Ref ImageIdentifier
+          ImageConfiguration:
+            Port: '8080'
+            RuntimeEnvironmentVariables:
+              - Name: NODE_ENV
+                Value: production
+              - Name: AWS_REGION
+                Value: !Ref AWS::Region
+              - Name: FRONTEND_ORIGIN
+                Value: !Ref FrontendOrigin
+              - Name: DDB_TABLE_NAME
+                Value: !Ref TableName
+              - Name: BEDROCK_MODEL_ID
+                Value: !Ref BedrockModelId
+              - !If
+                - HasGuardrail
+                - Name: BEDROCK_GUARDRAIL_ID
+                  Value: !Ref BedrockGuardrailId
+                - !Ref AWS::NoValue
+              - !If
+                - HasGuardrail
+                - Name: BEDROCK_GUARDRAIL_VERSION
+                  Value: !Ref BedrockGuardrailVersion
+                - !Ref AWS::NoValue
+            RuntimeEnvironmentSecrets:
+              - Name: JWT_SECRET
+                Value: !Ref JwtSecretArn
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+
+Outputs:
+  ServiceArn:
+    Value: !GetAtt ApiService.ServiceArn
+  ServiceUrl:
+    Value: !Sub https://${ApiService.ServiceUrl}
+  AutoScalingConfigurationArn:
+    Value: !GetAtt ApiAutoScaling.AutoScalingConfigurationArn

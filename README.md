@@ -6,7 +6,7 @@ A planning assistant for **weddings, birthdays, and community events**. It turns
 
 ## Project Status
 
-Phases 1–4 are implemented. The project now includes a secure TypeScript API, deterministic planning engine, DynamoDB persistence, guarded Bedrock features, and a responsive, accessible React experience covering the complete planning workflow.
+Phases 1–4 are implemented, and Phase 5 deployment artifacts are validated and ready. The project includes a secure TypeScript API, deterministic planning engine, DynamoDB persistence, guarded Bedrock features, and a responsive, accessible React experience. Live AWS deployment is waiting for explicit approval plus a valid AWS CLI session and an App Runner-eligible account.
 
 | Phase                               | Status                                | Document                                               |
 | ----------------------------------- | ------------------------------------- | ------------------------------------------------------ |
@@ -14,7 +14,7 @@ Phases 1–4 are implemented. The project now includes a secure TypeScript API, 
 | 2. Backend core and planning engine | Complete                              | [Phase 2](phases/PHASE-2-BACKEND-CORE.md)              |
 | 3. GenAI integration with Bedrock   | Complete; live smoke needs a model ID | [Phase 3](phases/PHASE-3-GENAI-INTEGRATION.md)         |
 | 4. Frontend and accessibility       | Complete                              | [Phase 4](phases/PHASE-4-FRONTEND.md)                  |
-| 5. AWS deployment and submission    | Planned                               | [Phase 5](phases/PHASE-5-DEPLOYMENT-AND-SUBMISSION.md) |
+| 5. AWS deployment and submission    | Ready; awaiting authorized AWS deploy | [Phase 5](phases/PHASE-5-DEPLOYMENT-AND-SUBMISSION.md) |
 
 ## Chosen Vertical
 
@@ -36,7 +36,7 @@ React browser app
        |
        | HTTPS / JSON API
        v
-Express API (AWS App Runner in Phase 5)
+Express API (AWS App Runner deployment prepared)
        |-- Auth: bcrypt + one-hour JWT
        |-- Deterministic planning engine
        |-- AI safety/orchestration layer
@@ -103,7 +103,8 @@ Repository and model-client interfaces isolate AWS from route and business logic
 │   │       └── planning/       Deterministic planning engine
 │   └── tests/                  API, planning, AI, and AWS adapter tests
 ├── frontend/                   React application and component tests
-├── infrastructure/             DynamoDB CloudFormation template
+├── infrastructure/             CloudFormation stacks and deployment guide
+├── scripts/                    Safe deployment and validation scripts
 ├── phases/                     Five implementation guides
 ├── package.json                npm workspaces and shared commands
 └── README.md
@@ -253,7 +254,7 @@ Refinement preview never writes to DynamoDB. The response includes the event's `
 
 ## Testing
 
-The default suite runs 68 backend tests and 5 frontend workflow tests. Backend coverage includes planning decisions, auth, ownership, mutations, concurrency, refinement confirmation, DynamoDB commands, AI sanitization, prompt allowlisting, JSON repair, semantic validation, caching, fallbacks, Bedrock transport behavior, API contracts, and quotas. Frontend tests use mocked HTTP only and cover health, protected login, the five-step wizard, per-guest calculation, mutation/refetch behavior, keyboard tabs, budget/overspend text, AI fallback states, chat, refinement Cancel/Apply, and axe scans. DynamoDB Local tests separately execute real transaction and lifecycle behavior.
+The default suite runs 69 backend tests and 8 frontend tests. Backend coverage includes planning decisions, auth, ownership, mutations, concurrency, refinement confirmation, DynamoDB commands, AI sanitization, prompt allowlisting, JSON repair, semantic validation, caching, fallbacks, Bedrock transport behavior, API contracts, and quotas. Frontend tests use mocked HTTP only and cover health, protected login, the five-step wizard, per-guest calculation, mutation/refetch behavior, keyboard tabs, budget/overspend text, AI fallback states, chat, refinement Cancel/Apply, and axe scans. DynamoDB Local tests separately execute real transaction and lifecycle behavior.
 
 ```powershell
 $env:RUN_DYNAMODB_INTEGRATION = "true"
@@ -266,9 +267,57 @@ npm run test --workspace backend -- tests/integration/dynamodb-local.test.ts
 - Monetary input uses currencies from the supported two-decimal ISO 4217 set.
 - Vendor entries are planning categories, not a live marketplace.
 - AI estimates are suggestions, not quotes or professional advice.
-- Refinements are non-persistent previews until the Phase 4 confirmation UX is implemented.
-- The five-minute cache and AI rate limiter are in-process MVP controls. Phase 5 must use a shared store or a single App Runner instance before horizontal scaling.
+- Accepted refinement previews are revalidated and atomically persisted by the Phase 4 confirmation endpoint.
+- The five-minute cache and AI rate limiter are in-process MVP controls; the prepared App Runner configuration caps the service at one instance. Move both controls to a shared store before horizontal scaling.
 - Bedrock output safety is strongest when the optional Guardrail is configured.
 - The live model smoke test requires the user-selected model ID and access; none was configured during this phase.
 - The accessible React workflow is complete; deployment and a manual NVDA screen-reader walkthrough remain Phase 5 release checks.
 - The final live demo URL will be added in Phase 5.
+
+## AWS Deployment
+
+Deployment artifacts are ready but no AWS resources have been created by this repository session. The target architecture is:
+
+```text
+CloudFront ──OAC──> private/versioned S3 frontend
+    |
+    `── browser HTTPS calls ──> App Runner API (single instance)
+                                      |── DynamoDB retained table
+                                      |── Bedrock Converse + optional Guardrail
+                                      `── Secrets Manager JWT secret
+
+ECR stores immutable Git-SHA backend images.
+```
+
+`infrastructure/foundation.yml` provisions retained data/secrets, ECR, separate App Runner pull/runtime roles, S3, CloudFront security headers/SPA fallback, and an optional cost budget. `infrastructure/application.yml` provisions the image-based App Runner service. See [the deployment runbook](infrastructure/README.md).
+
+AWS documentation now states that App Runner is closed to new customers after April 30, 2026; an existing eligible account is required. The deployment script checks App Runner API access before creating resources.
+
+### Safe preflight (no resource changes)
+
+```powershell
+./scripts/deploy.ps1 `
+  -Region us-east-1 `
+  -BedrockModelId '<model-or-inference-profile-id>' `
+  -BedrockModelArn '<exact-allowed-resource-arn>'
+```
+
+### Authorized deployment
+
+The same command with `-Execute` creates billable public AWS resources. Do not run it until the account, region, model access, monthly budget, IAM policy, retained-resource behavior, and S3 `--delete` preview have been reviewed and explicitly approved.
+
+The backend image uses pinned `node:22.13.0-alpine3.21`, builds from the workspace root, runs as the non-root `node` user, and excludes all `.env` files. The React build receives the App Runner URL at build time. CloudFront serves the private S3 origin with HTTPS, CSP, HSTS, clickjacking/content-type/referrer protections, and `/index.html` fallback for direct React routes.
+
+### Live URLs
+
+- Frontend: **Not deployed yet — added after authorized Phase 5 execution**
+- API: **Not deployed yet — added after authorized Phase 5 execution**
+
+## Submission Readiness
+
+- Public repository: [Cyberexe1/Promptwars](https://github.com/Cyberexe1/Promptwars)
+- Required branch: `main` only
+- Repository limit: under 10 MB (verified after each phase)
+- Secrets: `.env` and build outputs ignored; history scanned before deployment/submission
+- Code, security, efficiency, testing, accessibility, and problem alignment are documented above
+- Remaining checks: valid AWS CLI session, App Runner eligibility, live Bedrock smoke, authorized deployment, deployed E2E/security checks, manual NVDA pass, and final live URLs

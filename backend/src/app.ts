@@ -61,7 +61,9 @@ export function createApp(dependencies: AppDependencies) {
   app.use(helmet());
   app.use(
     cors({
-      origin: env.FRONTEND_ORIGIN,
+      origin(origin, callback) {
+        callback(null, !origin || origin === env.FRONTEND_ORIGIN);
+      },
       methods: ['GET', 'POST', 'PATCH', 'DELETE'],
       allowedHeaders: ['Content-Type', 'Authorization'],
     }),
