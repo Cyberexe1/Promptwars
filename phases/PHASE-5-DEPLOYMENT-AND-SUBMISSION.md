@@ -97,13 +97,14 @@ The execute path previews `aws s3 sync --delete` before applying it, builds Reac
 
 ## 7. Quality and Accessibility Status
 
-- [x] 69 backend tests pass; 2 additional DynamoDB Local tests previously passed and remain opt-in.
+- [x] 70 backend tests pass; 2 additional DynamoDB Local tests previously passed and remain opt-in.
 - [x] 8 frontend tests pass using mocked HTTP.
 - [x] Axe checks cover landing, auth, wizard, dashboard, and refinement states.
 - [x] Backend/frontend lint, builds, formatting, and high-severity dependency audit pass.
 - [x] Route-level splitting; main frontend bundle approximately 84.7 KB gzip.
 - [ ] Manual deployed happy path for wedding, birthday, and community events.
-- [ ] Live Bedrock result with `aiAvailable: true`, plus disabled-model fallback.
+- [x] Local live Bedrock result returns `aiAvailable: true` with `amazon.nova-lite-v1:0`.
+- [ ] Deployed Bedrock result plus disabled-model fallback.
 - [ ] Keyboard-only deployed walkthrough at desktop and 360px.
 - [ ] Manual NVDA screen-reader walkthrough and 200% zoom check.
 
@@ -130,4 +131,4 @@ The execute path previews `aws s3 sync --delete` before applying it, builds Reac
 
 ## 10. Current Blockers
 
-The safe preflight was executed and correctly stopped before resource creation because `aws sts get-caller-identity` returned `InvalidClientTokenId`. Docker CLI is installed, but the Docker daemon was not available during preparation. No billable or public AWS resource was created or modified.
+The safe preflight first stopped before resource creation because the AWS token was invalid; after the user refreshed credentials, AWS identity and App Runner API checks passed. `amazon.nova-lite-v1:0` was selected and its live synthetic smoke check passed. Docker CLI is installed, but the Docker daemon is not running, so no billable or public AWS resource has been created or modified.

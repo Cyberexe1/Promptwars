@@ -41,9 +41,15 @@ interface StructuredCallOptions<T> {
   semanticValidator?: (value: T) => boolean;
 }
 
+function normalizeJsonEnvelope(raw: string): string {
+  const trimmed = raw.trim();
+  const fenced = /^```json\s*\r?\n([\s\S]*?)\r?\n```$/i.exec(trimmed);
+  return fenced?.[1]?.trim() ?? trimmed;
+}
+
 function parseJson<T>(raw: string, schema: ZodType<T>): T | null {
   try {
-    const parsed: unknown = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(normalizeJsonEnvelope(raw));
     const result = schema.safeParse(parsed);
     return result.success ? result.data : null;
   } catch {
@@ -124,7 +130,13 @@ function remainingForIdeas(
   > = {
     theme: ['decor', 'misc', 'contingency'],
     menu: ['catering', 'food', 'cake'],
-    activities: ['activities', 'entertainment'],
+    activities: [
+      'activities',
+      'entertainment',
+      'music',
+      'av-equipment',
+      'volunteers',
+    ],
     decor: ['decor'],
     gifts: ['gifts', 'favors', 'misc', 'contingency'],
   };

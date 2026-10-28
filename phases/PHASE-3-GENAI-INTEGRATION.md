@@ -22,7 +22,7 @@
 4. **Least privilege.** Backend can only call the approved model ID.
 5. **Context injection.** Every prompt includes the event context (type, guests, budget, city, date, preferences) so output is personalized.
 
-**Implementation status:** Complete with mocked and API validation. A live smoke script is included, but it cannot run until `BEDROCK_MODEL_ID` is populated in `backend/.env`. Missing model configuration automatically uses deterministic fallbacks.
+**Implementation status:** Complete. Mocked and API validation pass, and the live synthetic smoke test succeeds with `amazon.nova-lite-v1:0`. Missing or inaccessible model configuration still automatically uses deterministic fallbacks.
 
 ## 3. Setup
 
@@ -139,7 +139,7 @@ Rules:
 
 ## 9. Definition of Done
 
-- [ ] Live Bedrock smoke call — implementation is ready; blocked only by missing `BEDROCK_MODEL_ID` in the local environment.
+- [x] Live Bedrock smoke call succeeds with `amazon.nova-lite-v1:0` and schema-valid, budget-bound output.
 - [x] Bad or malicious input does not break the app or leak secrets.
 - [x] If Bedrock is unreachable, the app returns useful deterministic plan data.
 - [x] AI responses are schema- and semantics-validated with focused mock tests.

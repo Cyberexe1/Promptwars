@@ -12,7 +12,7 @@ Phases 1–4 are implemented, and Phase 5 deployment artifacts are validated and
 | ----------------------------------- | ------------------------------------- | ------------------------------------------------------ |
 | 1. Foundation and project setup     | Complete                              | [Phase 1](phases/PHASE-1-FOUNDATION.md)                |
 | 2. Backend core and planning engine | Complete                              | [Phase 2](phases/PHASE-2-BACKEND-CORE.md)              |
-| 3. GenAI integration with Bedrock   | Complete; live smoke needs a model ID | [Phase 3](phases/PHASE-3-GENAI-INTEGRATION.md)         |
+| 3. GenAI integration with Bedrock   | Complete; live Nova smoke passed      | [Phase 3](phases/PHASE-3-GENAI-INTEGRATION.md)         |
 | 4. Frontend and accessibility       | Complete                              | [Phase 4](phases/PHASE-4-FRONTEND.md)                  |
 | 5. AWS deployment and submission    | Ready; awaiting authorized AWS deploy | [Phase 5](phases/PHASE-5-DEPLOYMENT-AND-SUBMISSION.md) |
 
@@ -170,7 +170,7 @@ After setting an approved `BEDROCK_MODEL_ID`:
 npm run ai:smoke --workspace backend
 ```
 
-The script sends one synthetic, non-personal event to Bedrock and fails unless the response is available and schema-valid. It does not run in CI. At the end of Phase 3, local credentials were configured but no model ID was present, so this environment-specific check remains unexecuted.
+The script sends one synthetic, non-personal event to Bedrock and fails unless the response is available and schema-valid. It does not run in CI. A live smoke passed with `amazon.nova-lite-v1:0`, returning five schema-valid, budget-bound ideas.
 
 ### Quality commands
 
@@ -254,7 +254,7 @@ Refinement preview never writes to DynamoDB. The response includes the event's `
 
 ## Testing
 
-The default suite runs 69 backend tests and 8 frontend tests. Backend coverage includes planning decisions, auth, ownership, mutations, concurrency, refinement confirmation, DynamoDB commands, AI sanitization, prompt allowlisting, JSON repair, semantic validation, caching, fallbacks, Bedrock transport behavior, API contracts, and quotas. Frontend tests use mocked HTTP only and cover health, protected login, the five-step wizard, per-guest calculation, mutation/refetch behavior, keyboard tabs, budget/overspend text, AI fallback states, chat, refinement Cancel/Apply, and axe scans. DynamoDB Local tests separately execute real transaction and lifecycle behavior.
+The default suite runs 70 backend tests and 8 frontend tests. Backend coverage includes planning decisions, auth, ownership, mutations, concurrency, refinement confirmation, DynamoDB commands, AI sanitization, prompt allowlisting, JSON repair, semantic validation, caching, fallbacks, Bedrock transport behavior, API contracts, and quotas. Frontend tests use mocked HTTP only and cover health, protected login, the five-step wizard, per-guest calculation, mutation/refetch behavior, keyboard tabs, budget/overspend text, AI fallback states, chat, refinement Cancel/Apply, and axe scans. DynamoDB Local tests separately execute real transaction and lifecycle behavior.
 
 ```powershell
 $env:RUN_DYNAMODB_INTEGRATION = "true"
@@ -270,7 +270,7 @@ npm run test --workspace backend -- tests/integration/dynamodb-local.test.ts
 - Accepted refinement previews are revalidated and atomically persisted by the Phase 4 confirmation endpoint.
 - The five-minute cache and AI rate limiter are in-process MVP controls; the prepared App Runner configuration caps the service at one instance. Move both controls to a shared store before horizontal scaling.
 - Bedrock output safety is strongest when the optional Guardrail is configured.
-- The live model smoke test requires the user-selected model ID and access; none was configured during this phase.
+- The selected deployment model is `amazon.nova-lite-v1:0`; its live synthetic smoke check passed.
 - The accessible React workflow is complete; deployment and a manual NVDA screen-reader walkthrough remain Phase 5 release checks.
 - The final live demo URL will be added in Phase 5.
 
