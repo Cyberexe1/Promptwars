@@ -333,8 +333,12 @@ export class EventAiService {
 
     const result = await this.structuredCall<IdeasModelOutput>({
       schema: ideasModelSchema,
-      prompt: buildIdeasPrompt(plan, normalizedInput),
-      temperature: 0.7,
+      prompt: buildIdeasPrompt(
+        plan,
+        normalizedInput,
+        remainingForIdeas(plan, normalizedInput.category),
+      ),
+      temperature: 0.5,
       maxTokens: 1_200,
       semanticValidator: (output) =>
         isSemanticallyValidIdeas(output, plan, normalizedInput.category),
