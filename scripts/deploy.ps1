@@ -124,13 +124,14 @@ try {
   $imageTag = (git rev-parse --short=12 HEAD).Trim()
   Assert-LastExit 'Git image tag lookup'
   $repositoryName = ($ecrUri -split '/')[-1]
-  $imageExists = aws ecr describe-images `
+  $imageExists = aws ecr list-images `
     --region $Region `
     --repository-name $repositoryName `
-    --image-ids "imageTag=$imageTag" `
-    --query 'imageDetails[0].imageDigest' `
-    --output text 2>$null
-  if ($LASTEXITCODE -ne 0) { $imageExists = $null }
+    --filter tagStatus=TAGGED `
+    --query "imageIds[?imageTag=='$imageTag'].imageDigest | [0]" `
+    --output text
+  Assert-LastExit 'ECR image lookup'
+  if ($imageExists -eq 'None') { $imageExists = $null }
 
   if (-not $imageExists) {
     if ($RemoteBuild) {
