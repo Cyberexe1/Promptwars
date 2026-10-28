@@ -2,9 +2,11 @@
 
 **Goal:** Deploy the API to AWS App Runner and the React application to private S3 + CloudFront, then complete live security, accessibility, and submission checks.
 
-**Status:** Deployment artifacts are implemented and pass offline validation. Live deployment is blocked pending explicit approval, valid AWS CLI authentication, a selected Bedrock model ID/ARN, a running Docker daemon, and confirmation that the AWS account is eligible for App Runner.
+**Status:** Complete and live in `us-east-1`.
 
-> AWS documentation states that App Runner is closed to new customers after April 30, 2026. Existing customers can continue using it. The deployment preflight checks App Runner API access before provisioning.
+- Frontend: `https://d2tqgtztkwfw4j.cloudfront.net`
+- API: `https://uvpwnzxmbe.us-east-1.awsapprunner.com`
+- Deployed image: `961308088417.dkr.ecr.us-east-1.amazonaws.com/promptwars-api:8c5ae95fbc31`
 
 ---
 

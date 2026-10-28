@@ -6,15 +6,15 @@ A planning assistant for **weddings, birthdays, and community events**. It turns
 
 ## Project Status
 
-Phases 1–4 are implemented, and Phase 5 deployment artifacts are validated and ready. The project includes a secure TypeScript API, deterministic planning engine, DynamoDB persistence, guarded Bedrock features, and a responsive, accessible React experience. Live AWS deployment is waiting for explicit approval plus a valid AWS CLI session and an App Runner-eligible account.
+All five phases are implemented and deployed to AWS. The public React application uses CloudFront with a private S3 origin; the Node API runs on App Runner with DynamoDB persistence, Secrets Manager, ECR, and live Amazon Nova Lite generation.
 
-| Phase                               | Status                                | Document                                               |
-| ----------------------------------- | ------------------------------------- | ------------------------------------------------------ |
-| 1. Foundation and project setup     | Complete                              | [Phase 1](phases/PHASE-1-FOUNDATION.md)                |
-| 2. Backend core and planning engine | Complete                              | [Phase 2](phases/PHASE-2-BACKEND-CORE.md)              |
-| 3. GenAI integration with Bedrock   | Complete; live Nova smoke passed      | [Phase 3](phases/PHASE-3-GENAI-INTEGRATION.md)         |
-| 4. Frontend and accessibility       | Complete                              | [Phase 4](phases/PHASE-4-FRONTEND.md)                  |
-| 5. AWS deployment and submission    | Ready; awaiting authorized AWS deploy | [Phase 5](phases/PHASE-5-DEPLOYMENT-AND-SUBMISSION.md) |
+| Phase                               | Status                           | Document                                               |
+| ----------------------------------- | -------------------------------- | ------------------------------------------------------ |
+| 1. Foundation and project setup     | Complete                         | [Phase 1](phases/PHASE-1-FOUNDATION.md)                |
+| 2. Backend core and planning engine | Complete                         | [Phase 2](phases/PHASE-2-BACKEND-CORE.md)              |
+| 3. GenAI integration with Bedrock   | Complete; live Nova smoke passed | [Phase 3](phases/PHASE-3-GENAI-INTEGRATION.md)         |
+| 4. Frontend and accessibility       | Complete                         | [Phase 4](phases/PHASE-4-FRONTEND.md)                  |
+| 5. AWS deployment and submission    | Complete                         | [Phase 5](phases/PHASE-5-DEPLOYMENT-AND-SUBMISSION.md) |
 
 ## Chosen Vertical
 
@@ -36,7 +36,7 @@ React browser app
        |
        | HTTPS / JSON API
        v
-Express API (AWS App Runner deployment prepared)
+Express API (AWS App Runner)
        |-- Auth: bcrypt + one-hour JWT
        |-- Deterministic planning engine
        |-- AI safety/orchestration layer
@@ -271,12 +271,12 @@ npm run test --workspace backend -- tests/integration/dynamodb-local.test.ts
 - The five-minute cache and AI rate limiter are in-process MVP controls; the prepared App Runner configuration caps the service at one instance. Move both controls to a shared store before horizontal scaling.
 - Bedrock output safety is strongest when the optional Guardrail is configured.
 - The selected deployment model is `amazon.nova-lite-v1:0`; its live synthetic smoke check passed.
-- The accessible React workflow is complete; deployment and a manual NVDA screen-reader walkthrough remain Phase 5 release checks.
-- The final live demo URL will be added in Phase 5.
+- The accessible React workflow is deployed; a manual NVDA screen-reader walkthrough remains a recommended human release check.
+- Live production URLs are listed below.
 
 ## AWS Deployment
 
-Deployment artifacts are ready but no AWS resources have been created by this repository session. The target architecture is:
+The application is deployed in `us-east-1`. The target architecture is:
 
 ```text
 CloudFront ──OAC──> private/versioned S3 frontend
@@ -306,12 +306,12 @@ AWS documentation now states that App Runner is closed to new customers after Ap
 
 The same command with `-Execute` creates billable public AWS resources. Do not run it until the account, region, model access, monthly budget, IAM policy, retained-resource behavior, and S3 `--delete` preview have been reviewed and explicitly approved.
 
-The backend image uses pinned `node:22.13.0-alpine3.21`, builds from the workspace root, runs as the non-root `node` user, and excludes all `.env` files. The React build receives the App Runner URL at build time. CloudFront serves the private S3 origin with HTTPS, CSP, HSTS, clickjacking/content-type/referrer protections, and `/index.html` fallback for direct React routes.
+The backend image uses pinned `node:22.13.0-alpine3.21`, was remotely built by CodeBuild from Git SHA `8c5ae95fbc31`, runs as the non-root `node` user, and excludes all `.env` files. The React build embeds the App Runner URL at build time. CloudFront serves the private S3 origin with HTTPS, CSP, HSTS, clickjacking/content-type/referrer protections, and `/index.html` fallback for direct React routes.
 
 ### Live URLs
 
-- Frontend: **Not deployed yet — added after authorized Phase 5 execution**
-- API: **Not deployed yet — added after authorized Phase 5 execution**
+- Frontend: **https://d2tqgtztkwfw4j.cloudfront.net**
+- API: **https://uvpwnzxmbe.us-east-1.awsapprunner.com**
 
 ## Submission Readiness
 
@@ -320,4 +320,12 @@ The backend image uses pinned `node:22.13.0-alpine3.21`, builds from the workspa
 - Repository limit: under 10 MB (verified after each phase)
 - Secrets: `.env` and build outputs ignored; history scanned before deployment/submission
 - Code, security, efficiency, testing, accessibility, and problem alignment are documented above
-- Remaining checks: valid AWS CLI session, App Runner eligibility, live Bedrock smoke, authorized deployment, deployed E2E/security checks, manual NVDA pass, and final live URLs
+- Remaining human check: manual NVDA walkthrough before final challenge submission
+
+### Production validation evidence
+
+- App Runner and both CloudFormation stacks reached successful completion.
+- Public API health, allowed/blocked CORS behavior, CloudFront security headers, React SPA fallback, and direct S3 denial passed.
+- An authenticated synthetic E2E created wedding, birthday, and community plans; verified exact budget totals, event listing, task mutation, and DynamoDB transactions.
+- Deployed Bedrock returned five validated, budget-bound Nova Lite ideas with `aiAvailable: true`.
+- All synthetic events and account records were removed after validation.
