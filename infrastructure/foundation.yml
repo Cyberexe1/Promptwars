@@ -94,6 +94,87 @@ Resources:
         - Key: Project
           Value: !Ref ProjectName
 
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: PromptwarsImageBuild
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:CompleteLayerUpload
+                  - ecr:InitiateLayerUpload
+                  - ecr:PutImage
+                  - ecr:UploadLayerPart
+                Resource: !GetAtt ApiRepository.Arn
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+
+  ApiImageBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${ProjectName}-api-image
+      Description: Builds the Promptwars backend image from an immutable Git SHA
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      TimeoutInMinutes: 30
+      QueuedTimeoutInMinutes: 15
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Source:
+        Type: NO_SOURCE
+        BuildSpec: !Sub |
+          version: 0.2
+          phases:
+            pre_build:
+              commands:
+                - aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}
+                - git clone --depth 1 https://github.com/Cyberexe1/Promptwars.git source
+                - git -C source checkout --detach "$GIT_SHA"
+            build:
+              commands:
+                - docker build --file source/backend/Dockerfile --tag "$ECR_URI:$IMAGE_TAG" source
+            post_build:
+              commands:
+                - docker push "$ECR_URI:$IMAGE_TAG"
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: ECR_URI
+            Value: !GetAtt ApiRepository.RepositoryUri
+          - Name: GIT_SHA
+            Value: required-at-start
+          - Name: IMAGE_TAG
+            Value: required-at-start
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+
   AppRunnerEcrAccessRole:
     Type: AWS::IAM::Role
     Properties:
@@ -316,6 +397,8 @@ Outputs:
     Value: !Ref JwtSecret
   EcrRepositoryUri:
     Value: !GetAtt ApiRepository.RepositoryUri
+  CodeBuildProjectName:
+    Value: !Ref ApiImageBuildProject
   EcrAccessRoleArn:
     Value: !GetAtt AppRunnerEcrAccessRole.Arn
   InstanceRoleArn:

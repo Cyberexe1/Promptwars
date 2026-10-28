@@ -2,7 +2,7 @@
 
 The production deployment is split into two CloudFormation stacks so durable data and replaceable application compute have different lifecycles.
 
-- `foundation.yml`: retained DynamoDB table and JWT secret, private/versioned S3 bucket, CloudFront OAC/distribution/security headers, immutable ECR repository, least-privilege roles, and an optional cost budget.
+- `foundation.yml`: retained DynamoDB table and JWT secret, private/versioned S3 bucket, CloudFront OAC/distribution/security headers, immutable ECR repository, remote CodeBuild image builder, least-privilege roles, and an optional cost budget.
 - `application.yml`: single-instance App Runner service using an immutable Git-SHA image.
 - `../scripts/deploy.ps1`: validates the account/templates first and changes resources only with `-Execute`.
 - `../scripts/validate-deployment.ps1`: checks health, CORS, frontend security headers, SPA fallback, and private S3 access.
@@ -27,7 +27,8 @@ AWS documentation states that App Runner is no longer open to new customers afte
 ./scripts/deploy.ps1 `
   -Region us-east-1 `
   -BedrockModelId '<model-id>' `
-  -BedrockModelArn '<exact-model-arn>'
+  -BedrockModelArn '<exact-model-arn>' `
+  -RemoteBuild
 ```
 
 This checks AWS identity, CloudFormation syntax, App Runner API access, Git cleanliness, and required local tools. It does not create or update resources.
@@ -39,6 +40,7 @@ This checks AWS identity, CloudFormation syntax, App Runner API access, Git clea
   -Region us-east-1 `
   -BedrockModelId '<model-id>' `
   -BedrockModelArn '<exact-model-arn>' `
+  -RemoteBuild `
   -BudgetEmail '<notification-email>' `
   -MonthlyBudgetUsd 25 `
   -Execute

@@ -9,6 +9,7 @@ param(
   [string]$BedrockGuardrailArn = '',
   [string]$BudgetEmail = '',
   [decimal]$MonthlyBudgetUsd = 25,
+  [switch]$RemoteBuild,
   [switch]$Execute
 )
 
@@ -51,8 +52,8 @@ try {
   if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
     throw 'AWS CLI is required.'
   }
-  if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    throw 'Docker CLI is required.'
+  if (-not $RemoteBuild -and -not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    throw 'Docker CLI is required unless -RemoteBuild is selected.'
   }
 
   $accountId = aws sts get-caller-identity --query Account --output text
@@ -82,8 +83,10 @@ try {
     exit 0
   }
 
-  docker info *> $null
-  Assert-LastExit 'Docker daemon preflight'
+  if (-not $RemoteBuild) {
+    docker info *> $null
+    Assert-LastExit 'Docker daemon preflight'
+  }
 
   $foundationStack = "$ProjectName-foundation"
   $applicationStack = "$ProjectName-application"
@@ -109,6 +112,7 @@ try {
   Assert-LastExit 'Foundation deployment'
 
   $ecrUri = Get-StackOutput $foundationStack 'EcrRepositoryUri'
+  $buildProject = Get-StackOutput $foundationStack 'CodeBuildProjectName'
   $ecrRole = Get-StackOutput $foundationStack 'EcrAccessRoleArn'
   $instanceRole = Get-StackOutput $foundationStack 'InstanceRoleArn'
   $secretArn = Get-StackOutput $foundationStack 'JwtSecretArn'
@@ -129,15 +133,47 @@ try {
   if ($LASTEXITCODE -ne 0) { $imageExists = $null }
 
   if (-not $imageExists) {
-    $registry = ($ecrUri -split '/')[0]
-    $password = aws ecr get-login-password --region $Region
-    Assert-LastExit 'ECR login-token request'
-    $password | docker login --username AWS --password-stdin $registry
-    Assert-LastExit 'ECR login'
-    docker build --pull --file backend/Dockerfile --tag "${ecrUri}:${imageTag}" .
-    Assert-LastExit 'Backend image build'
-    docker push "${ecrUri}:${imageTag}"
-    Assert-LastExit 'Backend image push'
+    if ($RemoteBuild) {
+      $fullSha = (git rev-parse HEAD).Trim()
+      Assert-LastExit 'Full Git SHA lookup'
+      $buildId = aws codebuild start-build `
+        --region $Region `
+        --project-name $buildProject `
+        --environment-variables-override `
+          "name=GIT_SHA,value=$fullSha,type=PLAINTEXT" `
+          "name=IMAGE_TAG,value=$imageTag,type=PLAINTEXT" `
+        --query 'build.id' `
+        --output text
+      Assert-LastExit 'Remote image build start'
+      do {
+        Start-Sleep -Seconds 10
+        $buildStatus = aws codebuild batch-get-builds `
+          --region $Region `
+          --ids $buildId `
+          --query 'builds[0].buildStatus' `
+          --output text
+        Assert-LastExit 'Remote image build status'
+        Write-Output "CodeBuild status: $buildStatus"
+      } while ($buildStatus -in @('IN_PROGRESS'))
+      if ($buildStatus -ne 'SUCCEEDED') {
+        $logUrl = aws codebuild batch-get-builds `
+          --region $Region `
+          --ids $buildId `
+          --query 'builds[0].logs.deepLink' `
+          --output text
+        throw "Remote image build failed with status $buildStatus. Logs: $logUrl"
+      }
+    } else {
+      $registry = ($ecrUri -split '/')[0]
+      $password = aws ecr get-login-password --region $Region
+      Assert-LastExit 'ECR login-token request'
+      $password | docker login --username AWS --password-stdin $registry
+      Assert-LastExit 'ECR login'
+      docker build --pull --file backend/Dockerfile --tag "${ecrUri}:${imageTag}" .
+      Assert-LastExit 'Backend image build'
+      docker push "${ecrUri}:${imageTag}"
+      Assert-LastExit 'Backend image push'
+    }
   }
 
   $applicationParameters = @(
