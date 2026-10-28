@@ -1,4 +1,4 @@
-FROM node:22.23.4-alpine3.23 AS build
+FROM public.ecr.aws/docker/library/node:22.23.4-alpine3.23 AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -9,7 +9,7 @@ RUN npm ci
 COPY backend ./backend
 RUN npm run build --workspace backend
 
-FROM node:22.23.4-alpine3.23 AS runtime
+FROM public.ecr.aws/docker/library/node:22.23.4-alpine3.23 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
