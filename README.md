@@ -306,7 +306,7 @@ AWS documentation now states that App Runner is closed to new customers after Ap
 
 The same command with `-Execute` creates billable public AWS resources. Do not run it until the account, region, model access, monthly budget, IAM policy, retained-resource behavior, and S3 `--delete` preview have been reviewed and explicitly approved.
 
-The backend image uses pinned `node:22.13.0-alpine3.21`, was remotely built by CodeBuild from Git SHA `8c5ae95fbc31`, runs as the non-root `node` user, and excludes all `.env` files. The React build embeds the App Runner URL at build time. CloudFront serves the private S3 origin with HTTPS, CSP, HSTS, clickjacking/content-type/referrer protections, and `/index.html` fallback for direct React routes.
+The backend image uses pinned `public.ecr.aws/docker/library/node:22.23.4-alpine3.23`, was remotely built by CodeBuild from Git SHA `5d9b7ebae98a`, runs as the non-root `node` user, excludes all `.env` files, and has zero ECR scan findings. The React build embeds the App Runner URL at build time. CloudFront serves the private S3 origin with HTTPS, CSP, HSTS, clickjacking/content-type/referrer protections, and `/index.html` fallback for direct React routes.
 
 ### Live URLs
 
