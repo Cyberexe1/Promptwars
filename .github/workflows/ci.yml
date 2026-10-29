@@ -37,7 +37,17 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Tests with enforced coverage thresholds
-        run: npm run test:coverage
+        shell: bash
+        run: |
+          set +e
+          npm run test:coverage 2>&1 | tee test-output.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            # Surface the failing lines as a readable annotation on the run.
+            summary=$(grep -E 'FAIL|Error|ERROR|threshold|AssertionError|expected|Cannot find' test-output.log | head -25 | sed 's/%/%25/g' | tr '\n' '|')
+            echo "::error title=Test or coverage failure::${summary}"
+          fi
+          exit "$code"
 
       - name: Build
         run: npm run build
