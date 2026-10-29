@@ -2,7 +2,10 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
-const LandingPage = lazy(() => import('./pages/LandingPage'));
+// The landing page is the first screen most visitors see: ship it in the main
+// bundle instead of paying for a second round trip.
+import LandingPage from './pages/LandingPage';
+
 const AuthPage = lazy(() => import('./pages/AuthPage'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
 const NewEventPage = lazy(() => import('./pages/NewEventPage'));

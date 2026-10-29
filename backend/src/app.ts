@@ -1,3 +1,4 @@
+import compression from 'compression';
 import cors from 'cors';
 import express from 'express';
 import { rateLimit } from 'express-rate-limit';
@@ -68,7 +69,18 @@ export function createApp(dependencies: AppDependencies) {
       allowedHeaders: ['Content-Type', 'Authorization'],
     }),
   );
+  app.use(compression());
   app.use(express.json({ limit: '100kb' }));
+  // Responses may contain personal plans or tokens: never store them in
+  // shared caches. Health is the only public, cheap-to-revalidate endpoint.
+  app.use('/api', (_request, response, next) => {
+    response.setHeader('Cache-Control', 'private, no-cache');
+    next();
+  });
+  app.use('/api/auth', (_request, response, next) => {
+    response.setHeader('Cache-Control', 'no-store');
+    next();
+  });
 
   app.use('/api/health', healthRouter);
   app.use(

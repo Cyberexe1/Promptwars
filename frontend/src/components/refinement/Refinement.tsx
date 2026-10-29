@@ -40,7 +40,7 @@ function ProposalDialog({
     }
     if (event.key !== 'Tab') return;
     const controls = dialog.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled])',
+      'button:not([disabled]), [href], input:not([disabled]), [tabindex="0"]',
     );
     if (!controls?.length) return;
     const first = controls[0];
@@ -92,7 +92,12 @@ function ProposalDialog({
         {preview.proposedChanges.budgetShifts.length > 0 && (
           <section aria-labelledby="allocations-title">
             <h3 id="allocations-title">Allocation changes</h3>
-            <div className="table-scroll">
+            <div
+              className="table-scroll"
+              role="region"
+              aria-label="Allocation changes table"
+              tabIndex={0}
+            >
               <table>
                 <thead>
                   <tr>

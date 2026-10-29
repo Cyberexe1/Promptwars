@@ -102,7 +102,12 @@ export function BudgetPanel({ controller }: { controller: EventController }) {
           {currency(allocated - spent, plan.event.currency)} remaining
         </strong>
       </p>
-      <div className="table-scroll">
+      <div
+        className="table-scroll"
+        role="region"
+        aria-label="Budget table"
+        tabIndex={0}
+      >
         <table>
           <caption>Budget allocation and replacement spend totals</caption>
           <thead>

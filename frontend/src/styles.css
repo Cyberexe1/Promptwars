@@ -195,8 +195,7 @@ button.button-link:hover:not(:disabled) {
   top: 0;
   z-index: 20;
   border-bottom: 1px solid var(--line);
-  background: rgb(244 240 232 / 86%);
-  backdrop-filter: blur(14px);
+  background: rgb(244 240 232 / 96%);
 }
 .site-header__inner,
 main,
@@ -380,7 +379,6 @@ h3 {
   content: '';
   border-radius: 46% 54% 50% 50% / 55% 45% 55% 45%;
   background: linear-gradient(135deg, var(--sand), var(--mint));
-  animation: morph 12s ease-in-out infinite;
 }
 .preview-card {
   position: relative;
@@ -1104,7 +1102,6 @@ legend {
   border-radius: var(--radius);
   background: rgb(255 255 255 / 12%);
   text-align: center;
-  backdrop-filter: blur(6px);
 }
 .countdown strong {
   font-family: Georgia, Cambria, 'Times New Roman', serif;
@@ -1554,12 +1551,6 @@ summary {
 @keyframes float {
   50% {
     translate: 0 -12px;
-  }
-}
-@keyframes morph {
-  50% {
-    border-radius: 55% 45% 40% 60% / 45% 55% 45% 55%;
-    transform: rotate(8deg) scale(1.04);
   }
 }
 @keyframes pulse {

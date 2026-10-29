@@ -12,10 +12,14 @@
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "audit:a11y": "node scripts/a11y-audit.mjs",
+    "test:coverage": "npm run test:coverage --workspaces --if-present"
   },
   "devDependencies": {
+    "axe-core": "4.14.0",
     "concurrently": "10.0.6",
+    "playwright-core": "1.64.1",
     "prettier": "3.9.10"
   }
 }

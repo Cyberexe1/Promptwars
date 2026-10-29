@@ -231,7 +231,7 @@ try {
   Assert-LastExit 'S3 asset synchronization'
   aws s3 cp frontend/dist/index.html "s3://$bucketName/index.html" `
     --region $Region `
-    --cache-control 'no-cache, no-store, must-revalidate' `
+    --cache-control 'no-cache' `
     --content-type 'text/html; charset=utf-8'
   Assert-LastExit 'S3 index upload'
 
