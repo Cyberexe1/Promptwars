@@ -40,7 +40,10 @@ foreach ($header in @(
   'Strict-Transport-Security',
   'X-Content-Type-Options',
   'X-Frame-Options',
-  'Referrer-Policy'
+  'Referrer-Policy',
+  'Permissions-Policy',
+  'Cross-Origin-Opener-Policy',
+  'Cross-Origin-Resource-Policy'
 )) {
   if (-not $homeResponse.Headers[$header]) { throw "Missing frontend header: $header" }
 }

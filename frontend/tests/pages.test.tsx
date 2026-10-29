@@ -191,6 +191,42 @@ describe('authentication', () => {
     );
   });
 
+  it('lets users retry after a wrong password and then reach their events', async () => {
+    let attempts = 0;
+    mockApi([
+      [
+        'POST',
+        '/api/auth/login',
+        () =>
+          ++attempts === 1
+            ? apiError(401, 'UNAUTHORIZED', 'Invalid email or password')
+            : { user, token: 'test-token' },
+      ],
+    ]);
+    renderAt('/login', { signedIn: false });
+
+    fireEvent.change(await screen.findByLabelText('Email'), {
+      target: { value: user.email },
+    });
+    fireEvent.change(screen.getByLabelText('Password'), {
+      target: { value: 'WrongPass1' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Invalid email or password',
+    );
+    expect(window.location.pathname).toBe('/login');
+
+    fireEvent.change(screen.getByLabelText('Password'), {
+      target: { value: 'RightPass1' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    expect(
+      await screen.findByRole('heading', { name: 'My events' }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/events');
+  });
+
   it('sends users with an expired session back to login', async () => {
     mockApi([
       ['GET', '/api/events', () => apiError(401, 'UNAUTHORIZED', 'Expired')],

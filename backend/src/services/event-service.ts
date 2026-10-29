@@ -267,7 +267,9 @@ export class EventService {
     const previous = await this.requirePlan(userId, eventId);
     const eventChanges = Object.fromEntries(
       contextKeys
+        // eslint-disable-next-line security/detect-object-injection -- key comes from the contextKeys const tuple
         .filter((key) => input[key] !== undefined)
+        // eslint-disable-next-line security/detect-object-injection -- key comes from the contextKeys const tuple
         .map((key) => [key, input[key]]),
     ) as Partial<EventRecord>;
     const event: EventRecord = {

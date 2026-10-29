@@ -49,7 +49,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
           from?: { pathname?: string; search?: string; hash?: string };
         } | null
       )?.from;
-      const from = fromLocation?.pathname
+      const returnable =
+        fromLocation?.pathname &&
+        !['/login', '/signup'].includes(fromLocation.pathname);
+      const from = returnable
         ? `${fromLocation.pathname}${fromLocation.search ?? ''}${fromLocation.hash ?? ''}`
         : undefined;
       navigate(from ?? '/events', { replace: true });

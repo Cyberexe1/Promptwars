@@ -27,7 +27,14 @@ describe('GET /api/health', () => {
       'http://localhost:5173',
     );
     expect(allowed.headers['x-content-type-options']).toBe('nosniff');
-    expect(allowed.headers['x-frame-options']).toBe('SAMEORIGIN');
+    expect(allowed.headers['x-frame-options']).toBe('DENY');
+    expect(allowed.headers['content-security-policy']).toBe(
+      "default-src 'none';base-uri 'none';form-action 'none';frame-ancestors 'none'",
+    );
+    expect(allowed.headers['strict-transport-security']).toMatch(/max-age=\d+/);
+    expect(allowed.headers['referrer-policy']).toBe('no-referrer');
+    expect(allowed.headers['cross-origin-resource-policy']).toBe('same-origin');
+    expect(allowed.headers['x-powered-by']).toBeUndefined();
     expect(blocked.headers['access-control-allow-origin']).toBeUndefined();
   });
 });

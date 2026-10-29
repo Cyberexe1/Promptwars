@@ -1,0 +1,58 @@
+/* ---------- Motion ---------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+}
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes ring-draw {
+  from {
+    stroke-dashoffset: 327;
+  }
+}
+@keyframes float {
+  50% {
+    translate: 0 -12px;
+  }
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@keyframes ping {
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px rgb(33 99 79 / 0%);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@supports (animation-timeline: view()) {
+  .section,
+  .cta-band,
+  .connection-card {
+    animation: rise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 35%;
+  }
+}

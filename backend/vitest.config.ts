@@ -5,6 +5,7 @@ export default defineConfig({
     environment: 'node',
     env: {
       JWT_SECRET: 'automated-test-only-secret-32-characters',
+      LOG_LEVEL: 'silent',
     },
     exclude: ['dist/**', 'node_modules/**'],
     coverage: {
@@ -13,7 +14,7 @@ export default defineConfig({
       include: ['src/**'],
       // server.ts only binds a port; it is exercised by the production smoke test.
       exclude: ['src/server.ts'],
-      thresholds: { lines: 95, statements: 92, functions: 95, branches: 78 },
+      thresholds: { lines: 97, statements: 96, functions: 97, branches: 87 },
     },
   },
 });

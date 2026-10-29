@@ -9,6 +9,7 @@ export function validate<T>(
   source: RequestSource,
 ): RequestHandler {
   return (request, response, next) => {
+    // eslint-disable-next-line security/detect-object-injection -- source is a closed union of three literals
     const result = schema.safeParse(request[source]);
 
     if (!result.success) {
@@ -16,6 +17,7 @@ export function validate<T>(
       return;
     }
 
+    // eslint-disable-next-line security/detect-object-injection -- source is a closed union of three literals
     response.locals[source] = result.data;
     next();
   };

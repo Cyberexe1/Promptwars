@@ -12,32 +12,18 @@
  * Browser: set BROWSER_PATH to Edge/Chrome if auto-detection fails.
  */
 import fs from 'node:fs';
-import http from 'node:http';
-import path from 'node:path';
 import { createRequire } from 'node:module';
 import { chromium } from 'playwright-core';
+import { findBrowser, serveDirectory } from './lib/static-server.mjs';
 
 const require = createRequire(import.meta.url);
 const axeSource = fs.readFileSync(
   require.resolve('axe-core/axe.min.js'),
   'utf8',
 );
-const dist = path.resolve('frontend/dist');
 const API = 'http://localhost:8080';
 
-const candidates = [
-  process.env.BROWSER_PATH,
-  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-  '/usr/bin/google-chrome',
-  '/usr/bin/chromium',
-].filter(Boolean);
-const executablePath = candidates.find((candidate) => fs.existsSync(candidate));
-if (!executablePath) {
-  console.error('No Chromium-based browser found. Set BROWSER_PATH.');
-  process.exit(2);
-}
+const executablePath = findBrowser();
 
 // ---------- fixtures ----------
 const user = {
@@ -183,29 +169,8 @@ async function stubApi(page, { events }) {
 }
 
 // ---------- static server ----------
-const types = {
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.html': 'text/html',
-  '.svg': 'image/svg+xml',
-  '.json': 'application/json',
-};
-const server = http.createServer((req, res) => {
-  const pathname = new URL(req.url, 'http://x').pathname;
-  let file = path.join(dist, pathname);
-  if (
-    !file.startsWith(dist) ||
-    !fs.existsSync(file) ||
-    fs.statSync(file).isDirectory()
-  )
-    file = path.join(dist, 'index.html');
-  res.writeHead(200, {
-    'Content-Type': types[path.extname(file)] ?? 'application/octet-stream',
-  });
-  fs.createReadStream(file).pipe(res);
-});
-await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-const base = `http://127.0.0.1:${server.address().port}`;
+const site = await serveDirectory('frontend/dist');
+const base = site.origin;
 
 // ---------- screens ----------
 const screens = [
@@ -424,7 +389,7 @@ for (const viewport of viewports) {
 }
 
 await browser.close();
-server.close();
+await site.close();
 
 console.log(
   `Accessibility audit: ${checks} checks across ${screens.length} screens x ${viewports.length} viewports.`,

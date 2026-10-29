@@ -141,6 +141,7 @@ function remainingForIdeas(
     gifts: ['gifts', 'favors', 'misc', 'contingency'],
   };
   if (!category) return totalRemaining(plan);
+  // eslint-disable-next-line security/detect-object-injection -- category is a zod-validated enum
   const preferred = new Set(preferredCategories[category]);
   const matching = plan.budget.filter((item) => preferred.has(item.category));
   if (matching.length === 0) return 0;
@@ -175,6 +176,7 @@ const categoryLabels: Record<NonNullable<IdeasRequest['category']>, string> = {
 function ideasFallback(plan: EventPlan, input: IdeasRequest): IdeasResponse {
   const remaining = remainingForIdeas(plan, input.category);
   const requested = input.category ?? 'activities';
+  // eslint-disable-next-line security/detect-object-injection -- requested is a zod-validated enum
   const label = categoryLabels[requested];
   const preference = plan.event.preferences[0];
   const pending = plan.tasks

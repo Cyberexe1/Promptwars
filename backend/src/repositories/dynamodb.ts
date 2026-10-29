@@ -49,7 +49,8 @@ function cancellationIsConditional(
 ): boolean {
   return (
     error instanceof TransactionCanceledException &&
-    error.CancellationReasons?.[actionIndex]?.Code === 'ConditionalCheckFailed'
+    error.CancellationReasons?.at(actionIndex)?.Code ===
+      'ConditionalCheckFailed'
   );
 }
 

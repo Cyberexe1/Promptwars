@@ -191,7 +191,6 @@ export default function NewEventPage() {
                         name="type"
                         value={type}
                         checked={draft.type === type}
-                        aria-invalid={!!errors.type}
                         onChange={() => set('type', type)}
                       />{' '}
                       <strong>{type[0].toUpperCase() + type.slice(1)}</strong>

@@ -1,0 +1,88 @@
+/* ---------- Buttons ---------- */
+button,
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.15rem;
+  border: 2px solid var(--forest);
+  border-radius: var(--radius-sm);
+  color: white;
+  background: linear-gradient(135deg, var(--forest-2), var(--forest));
+  cursor: pointer;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease),
+    background-color 0.2s,
+    color 0.2s;
+}
+button:hover:not(:disabled),
+.button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 10px 22px rgb(23 62 53 / 28%);
+}
+button:active:not(:disabled),
+.button:active {
+  transform: scale(1);
+  box-shadow: none;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+.button.small {
+  min-height: 44px;
+  padding: 0.45rem 0.95rem;
+}
+.button.large {
+  padding: 0.9rem 1.5rem;
+  font-size: 1.05rem;
+}
+.button .icon {
+  transition: transform 0.2s var(--ease);
+}
+.button:hover .icon {
+  transform: translateX(3px);
+}
+button.secondary,
+.secondary {
+  color: var(--forest);
+  background: transparent;
+}
+button.secondary:hover:not(:disabled),
+.secondary:hover {
+  background: var(--mint);
+  box-shadow: none;
+}
+button.danger {
+  color: #792b24;
+  border-color: #792b24;
+}
+button.danger:hover:not(:disabled) {
+  background: #fbe9e5;
+}
+.button.light {
+  color: var(--forest);
+  border-color: white;
+  background: white;
+}
+.button-link {
+  min-height: 44px;
+  padding: 0.3rem 0.6rem;
+  color: #174f42;
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+}
+button.button-link:hover:not(:disabled) {
+  box-shadow: none;
+  transform: none;
+  color: var(--forest);
+}
+.text-link {
+  padding: 0.75rem;
+  font-weight: 700;
+}

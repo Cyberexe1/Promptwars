@@ -47,6 +47,27 @@ describe('HTTP client', () => {
     expect(unauthorized).toHaveBeenCalledOnce();
   });
 
+  it('does not treat a wrong password as an expired session', async () => {
+    const unauthorized = vi.fn();
+    cleanups.push(configureHttp({ onUnauthorized: unauthorized }));
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: { code: 'UNAUTHORIZED', message: 'Invalid email or password' },
+        }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    await expect(
+      request('/auth/login', { method: 'POST' }),
+    ).rejects.toMatchObject({
+      status: 401,
+      message: 'Invalid email or password',
+    });
+    expect(unauthorized).not.toHaveBeenCalled();
+  });
+
   it('turns transport failures into safe retryable network errors', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(
       new Error('private network detail'),

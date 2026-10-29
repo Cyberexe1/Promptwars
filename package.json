@@ -14,7 +14,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "audit:a11y": "node scripts/a11y-audit.mjs",
-    "test:coverage": "npm run test:coverage --workspaces --if-present"
+    "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "e2e": "node scripts/e2e.mjs",
+    "verify": "npm run lint && npm run format:check && npm audit --audit-level=high && npm run test:coverage && npm run build"
   },
   "devDependencies": {
     "axe-core": "4.14.0",

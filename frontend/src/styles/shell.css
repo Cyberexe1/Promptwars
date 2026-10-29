@@ -1,0 +1,108 @@
+/* ---------- Shell ---------- */
+.page-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background:
+    radial-gradient(circle at 88% 4%, rgb(224 164 88 / 30%), transparent 26rem),
+    radial-gradient(circle at 4% 34%, rgb(43 103 89 / 14%), transparent 24rem),
+    var(--cream);
+}
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 30;
+  padding: 0.75rem 1rem;
+  color: white;
+  background: #20221f;
+  transform: translateY(-160%);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--line);
+  background: rgb(244 240 232 / 96%);
+}
+.site-header__inner,
+main,
+.site-footer {
+  width: min(1120px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.75rem;
+}
+.site-header nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.site-header nav a:not(.button) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 0.8rem;
+  border-radius: var(--radius-sm);
+  color: var(--forest);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+.site-header nav a:not(.button):hover,
+.site-header nav a[aria-current='page'] {
+  background: var(--mint);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  color: var(--forest);
+  font-family: Georgia, Cambria, 'Times New Roman', serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.brand-mark {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 0.7rem;
+  color: white;
+  background: linear-gradient(135deg, var(--forest-3), var(--forest));
+  box-shadow: 0 6px 14px rgb(23 62 53 / 30%);
+  transition: transform 0.4s var(--ease);
+}
+.brand:hover .brand-mark {
+  transform: rotate(-12deg) scale(1.08);
+}
+.brand-mark .icon {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+main {
+  display: grid;
+  align-content: start;
+  gap: 2rem;
+  padding-block: clamp(2rem, 6vw, 4rem);
+  /* "backwards" so no stacking context lingers above the modal afterwards */
+  animation: rise 0.6s var(--ease) backwards;
+}
+.site-footer {
+  padding-block: 1.5rem;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+.site-footer p {
+  margin: 0;
+}

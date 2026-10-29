@@ -75,6 +75,7 @@ function ProposalDialog({
   };
   return (
     <div className="modal-backdrop">
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- modal dialogs own Escape and Tab handling for their focus trap (WAI-ARIA APG) */}
       <div
         className="modal"
         role="dialog"

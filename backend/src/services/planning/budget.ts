@@ -176,7 +176,7 @@ export function allocateBudget(context: EventContext): BudgetItem[] {
   const budget = items.map((item, index) => ({
     category: item.category,
     label: item.label,
-    allocated: (allocations[index] ?? 0) / 100,
+    allocated: (allocations.at(index) ?? 0) / 100,
     spent: 0,
     notes: [...item.notes],
   }));

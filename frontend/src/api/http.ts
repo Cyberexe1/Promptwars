@@ -94,7 +94,11 @@ export async function request<T>(
       envelope?.code ?? 'HTTP_ERROR',
       envelope?.details,
     );
-    if (response.status === 401) unauthorizedHandler();
+    // A 401 from the login/signup endpoints means bad credentials, not an
+    // expired session, so it must not log the user out or redirect them.
+    if (response.status === 401 && !path.startsWith('/auth/')) {
+      unauthorizedHandler();
+    }
     throw error;
   }
   return payload as T;

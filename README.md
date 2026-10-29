@@ -255,15 +255,16 @@ Refinement preview never writes to DynamoDB. The response includes the event's `
 
 ## Testing
 
-The default suite runs 94 backend tests and 62 frontend tests, and `npm run test:coverage` fails if coverage drops below the minimums in the table.
+The default suite runs 127 backend tests and 64 frontend tests, and `npm run test:coverage` fails if coverage drops below the minimums in the table.
 
 | Area     | Lines | Branches | Enforced minimum (lines / branches) |
 | -------- | ----- | -------- | ----------------------------------- |
-| Backend  | 97%   | 81%      | 95% / 78%                           |
-| Frontend | 98%   | 91%      | 95% / 85%                           |
+| Backend  | 99%   | 89%      | 97% / 87%                           |
+| Frontend | 98%   | 92%      | 96% / 88%                           |
 
 - **Backend:** planning decisions, auth, ownership, mutations, optimistic concurrency, refinement confirmation, AI sanitization, prompt allowlisting, JSON repair, semantic validation, caching, fallbacks, Bedrock transport behavior, API contracts, quotas, error handling, config validation, response compression, and cache-header safety. The DynamoDB repository also runs against an in-memory client that implements transactions, conditions, updates, and paging, so its real logic is exercised on every run. DynamoDB Local tests (below) additionally run it against the real engine.
 - **Frontend:** mocked HTTP only. Covers every page, every dashboard tab, all error and retry paths, form validation, the refinement dialog (focus trap, Escape, conflict handling), keyboard tab navigation, and jsdom axe scans.
+- **Browser end-to-end test** (`npm run e2e`): builds the frontend against a local API, starts the real Express app with in-memory storage and an unavailable AI model, and drives Edge/Chrome through sign-up (including weak-password rejection), the five-step wizard, completing a task, overspending, vendor updates, the AI fallback paths, reload persistence, deletion, log out/in with a wrong password, and the 404 page. Current result: 13/13 steps.
 - **Real-browser accessibility audit** (`npm run build && npm run audit:a11y`): runs axe-core (WCAG 2.0/2.1/2.2 A and AA plus best practices, including colour contrast) in Edge or Chrome on 14 screens at desktop and phone sizes. It also checks reflow at 320px, 44px touch targets, and visible keyboard focus. Current result: 45 checks, 0 violations.
 - **Delivery performance** (Lighthouse, mobile profile, live CloudFront site, median of 5 runs): performance 97 (range 94-98), accessibility 100, best practices 100, SEO 100. Assets are brotli-compressed and immutable-cached, the landing page ships in the main bundle, and API responses are gzip-compressed. Single runs vary by about 5 points on shared hardware.
 

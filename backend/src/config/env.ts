@@ -21,6 +21,9 @@ const environmentSchema = z.object({
   BEDROCK_MODEL_ID: z.string().optional(),
   BEDROCK_GUARDRAIL_ID: z.string().optional(),
   BEDROCK_GUARDRAIL_VERSION: z.string().optional(),
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+    .optional(),
   JWT_SECRET: z.string().min(32),
 });
 

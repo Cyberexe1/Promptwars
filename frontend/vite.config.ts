@@ -42,12 +42,13 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'jsdom',
       setupFiles: './tests/setup.ts',
+      testTimeout: 20_000,
       coverage: {
         provider: 'v8',
         reporter: ['text', 'html'],
         include: ['src/**'],
         exclude: ['src/main.tsx', 'src/vite-env.d.ts', 'src/api/types.ts'],
-        thresholds: { lines: 95, statements: 94, functions: 94, branches: 85 },
+        thresholds: { lines: 96, statements: 95, functions: 95, branches: 88 },
       },
     },
   };

@@ -59,7 +59,22 @@ export function createApp(dependencies: AppDependencies) {
 
   app.disable('x-powered-by');
   if (env.NODE_ENV === 'production') app.set('trust proxy', 1);
-  app.use(helmet());
+  // A JSON-only API never needs to load or embed anything, so deny everything.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: false,
+        directives: {
+          defaultSrc: ["'none'"],
+          baseUri: ["'none'"],
+          formAction: ["'none'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+      frameguard: { action: 'deny' },
+      referrerPolicy: { policy: 'no-referrer' },
+    }),
+  );
   app.use(
     cors({
       origin(origin, callback) {

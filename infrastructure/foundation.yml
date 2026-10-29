@@ -296,13 +296,18 @@ Resources:
             IncludeSubdomains: true
             Override: true
           XSSProtection:
-            Protection: true
-            ModeBlock: true
+            Protection: false
             Override: true
         CustomHeadersConfig:
           Items:
             - Header: Permissions-Policy
-              Value: camera=(), microphone=(), geolocation=(), payment=()
+              Value: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+              Override: true
+            - Header: Cross-Origin-Opener-Policy
+              Value: same-origin
+              Override: true
+            - Header: Cross-Origin-Resource-Policy
+              Value: same-origin
               Override: true
 
   FrontendDistribution:
