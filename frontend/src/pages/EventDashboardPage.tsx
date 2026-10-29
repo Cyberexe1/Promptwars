@@ -10,7 +10,9 @@ import { VendorsPanel } from '../components/dashboard/VendorsPanel';
 import { PageShell } from '../components/layout/PageShell';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useEvent } from '../hooks/useEvent';
-import { date } from '../utils/format';
+import { daysUntil, date } from '../utils/format';
+import { Icon, type IconName } from '../components/Icons';
+// Tab slugs intentionally match icon names so each tab can show its icon.
 const tabs = [
   { slug: 'overview', label: 'Overview' },
   { slug: 'budget', label: 'Budget' },
@@ -18,7 +20,7 @@ const tabs = [
   { slug: 'vendors', label: 'Vendors' },
   { slug: 'ideas', label: 'Ideas' },
   { slug: 'assistant', label: 'Assistant' },
-] as const;
+] as const satisfies readonly { slug: IconName; label: string }[];
 type TabSlug = (typeof tabs)[number]['slug'];
 export default function EventDashboardPage() {
   const { id = '' } = useParams();
@@ -57,19 +59,35 @@ export default function EventDashboardPage() {
       ) : controller.plan ? (
         <article className="dashboard">
           <header className="dashboard-header">
-            <div>
-              <Link to="/events">← My events</Link>
+            <div className="dashboard-header__main">
+              <Link className="back-link" to="/events">
+                ← My events
+              </Link>
               <p className="eyebrow">
                 {controller.plan.event.type} ·{' '}
                 {date(controller.plan.event.date)}
               </p>
               <h1>{controller.plan.event.title}</h1>
-              <p>
-                {controller.plan.event.city} ·{' '}
-                {controller.plan.event.guestCount.toLocaleString()} guests
+              <p className="dashboard-meta">
+                <span>
+                  <Icon name="pin" />
+                  {controller.plan.event.city}
+                </span>
+                <span>
+                  <Icon name="users" />
+                  {controller.plan.event.guestCount.toLocaleString()} guests
+                </span>
               </p>
             </div>
-            {controller.loading && <span role="status">Refreshing plan…</span>}
+            <div className="dashboard-header__side">
+              <p className="countdown">
+                <strong>{daysUntil(controller.plan.event.date)}</strong>
+                <span>days to go</span>
+              </p>
+              {controller.loading && (
+                <span role="status">Refreshing plan…</span>
+              )}
+            </div>
           </header>
           {controller.error && (
             <div className="banner" role="alert">
@@ -96,11 +114,13 @@ export default function EventDashboardPage() {
                 onClick={() => select(tab.slug)}
                 onKeyDown={(event) => onKeys(event, index)}
               >
+                <Icon name={tab.slug} />
                 {tab.label}
               </button>
             ))}
           </div>
           <div
+            key={active}
             className="tab-panel"
             id={`panel-${active}`}
             role="tabpanel"

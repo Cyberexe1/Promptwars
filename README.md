@@ -84,6 +84,7 @@ Repository and model-client interfaces isolate AWS from route and business logic
 - Full-plan refresh after serialized mutations, with committed-write/refresh-failure distinction.
 - Accessible budget table, progress text, task controls, vendor forms, AI fallback banners, live chat announcements, and a focus-contained refinement dialog.
 - Route-level code splitting, responsive layouts down to 360px, reduced-motion support, 44px targets, and text equivalents for visual status.
+- Visual design: a landing page with an animated plan preview, feature grid, how-it-works steps, and event-type cards. The dashboard has a hero header with a countdown, icon tabs, KPI cards, an animated progress ring and budget bar, and styled timeline, budget, vendor, and chat panels. Motion is CSS-only (system fonts, no external assets, compatible with the strict CloudFront CSP) and is turned off by `prefers-reduced-motion`.
 
 ## Repository Layout
 

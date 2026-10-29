@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import * as api from '../api/events';
 import type { EventRecord } from '../api/types';
 import { ErrorState, Loading } from '../components/Feedback';
+import { Icon, eventTypeIcon } from '../components/Icons';
 import { PageShell } from '../components/layout/PageShell';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { currency, date, errorMessage } from '../utils/format';
@@ -55,7 +56,10 @@ export default function EventsPage() {
         ) : error ? (
           <ErrorState message={error} retry={() => void load()} />
         ) : events.length === 0 ? (
-          <div className="state">
+          <div className="state empty-state">
+            <span className="event-card__icon">
+              <Icon name="sparkle" />
+            </span>
             <h2>No events yet</h2>
             <p>Create your first event and we’ll build the starting plan.</p>
             <Link className="button" to="/events/new">
@@ -65,7 +69,13 @@ export default function EventsPage() {
         ) : (
           <ul className="card-grid clean-list">
             {events.map((event) => (
-              <li className="card" key={event.id}>
+              <li
+                className={`card event-card event-card--${event.type}`}
+                key={event.id}
+              >
+                <span className="event-card__icon">
+                  <Icon name={eventTypeIcon(event.type)} />
+                </span>
                 <p className="eyebrow">{event.type}</p>
                 <h2>
                   <Link to={`/events/${encodeURIComponent(event.id)}`}>

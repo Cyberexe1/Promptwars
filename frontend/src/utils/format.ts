@@ -19,3 +19,11 @@ export function errorMessage(error: unknown) {
     ? error.message
     : 'Something went wrong. Please try again.';
 }
+export function daysUntil(value: string) {
+  return Math.max(
+    0,
+    Math.ceil(
+      (new Date(`${value}T00:00:00`).getTime() - Date.now()) / 86_400_000,
+    ),
+  );
+}
