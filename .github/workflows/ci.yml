@@ -58,6 +58,15 @@ jobs:
           BROWSER_PATH: /usr/bin/google-chrome
 
       - name: Browser end-to-end test
-        run: npm run e2e
+        shell: bash
+        run: |
+          set +e
+          npm run e2e 2>&1 | tee e2e-output.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            summary=$(grep -vE '^\s*$' e2e-output.log | tail -30 | sed 's/%/%25/g' | tr '\n' '|')
+            echo "::error title=E2E failure::${summary}"
+          fi
+          exit "$code"
         env:
           BROWSER_PATH: /usr/bin/google-chrome
